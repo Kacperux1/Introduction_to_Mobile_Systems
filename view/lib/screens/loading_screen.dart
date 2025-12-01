@@ -1,11 +1,16 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:math' as math;
-import 'home_screen.dart';
+import 'package:http/http.dart' as http;
+import 'package:view/screens/home_screen.dart';
 
 class LoadingScreen extends StatefulWidget {
-  const LoadingScreen({super.key});
+  final String username;
+  final String password;
+
+  const LoadingScreen({required this.username, required this.password, super.key});
 
   @override
   State<LoadingScreen> createState() => _LoadingScreenState();
@@ -16,6 +21,8 @@ class _LoadingScreenState extends State<LoadingScreen>
   late final AnimationController _rotationController;
   late final AnimationController _logoBlinkController;
   late final AnimationController _dotsController;
+
+  final String _baseUrl = 'http://10.0.2.2:8080'; // 10.0.2.2 Android emulator (localhost na komputerze)
 
   @override
   void initState() {
@@ -36,16 +43,42 @@ class _LoadingScreenState extends State<LoadingScreen>
       vsync: this,
     )..repeat();
 
-    // Przechodzi do ekranu głównego po 5 sekundach.
-    // Trochę sztucznie, ale na potrzeby demonstracji warto pokazać, a potem można kombinować.
-    //TODO
-    Timer(const Duration(seconds: 5), () {
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+    WidgetsBinding.instance.addPostFrameCallback((_) => _performLogin());
+  }
+
+  Future<void> _performLogin() async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/auth/login'),
+        headers: {'Content-Type': 'application/json; charset=UTF-8'},
+        body: jsonEncode({'login': widget.username, 'password': widget.password}),
+      ).timeout(const Duration(seconds: 10));
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        final responseBody = jsonDecode(response.body);
+        final String token = responseBody['token'];
+        print('Login successful. Token: $token');
+
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => HomeScreen(token: token)),
+          (route) => false,
         );
+      } else {
+        _handleLoginError('Login failed: ${response.body}');
       }
-    });
+    } catch (e) {
+      _handleLoginError('An error occurred: $e');
+    }
+  }
+
+  void _handleLoginError(String message) {
+    print(message);
+    if (mounted) {
+      Navigator.of(context).pop(message);
+    }
   }
 
   @override
@@ -76,7 +109,7 @@ class _LoadingScreenState extends State<LoadingScreen>
                 ),
               ),
 
-              //Animowane kółka na ekranie ładowania
+              //Animowane kółka
               AnimatedBuilder(
                 animation: _rotationController,
                 builder: (context, child) {
@@ -136,7 +169,7 @@ class _LoadingScreenState extends State<LoadingScreen>
     return Transform.translate(
       offset: Offset(
         radius * math.cos(angle), //Ruch horyzontalny
-        0, //Brak ruchu wertykalnego
+        0, //Ruch wertykalny
       ),
       child: Transform.scale(
         scale: scale,

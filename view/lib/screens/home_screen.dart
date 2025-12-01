@@ -12,7 +12,8 @@ import 'language_screen.dart';
 import 'preferences_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final String token;
+  const HomeScreen({required this.token, super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -45,8 +46,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-
     return Scaffold(
       backgroundColor: const Color(0xFF00008B),
       appBar: AppBar(
@@ -131,37 +130,37 @@ class _HomeScreenState extends State<HomeScreen> {
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
                 child: Container(
-                  color: Colors.black.withValues(alpha: 0.5, colorSpace: ColorSpace.sRGB),
+                  color: Colors.black.withOpacity(0.5),
                 ),
               ),
             ),
           
-          //Menu wysuwane książki
+          //Lewe Menu
           _buildSlidingMenu(
             isOpen: _isLeftMenuOpen,
             alignment: Alignment.centerLeft,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildDrawerItem('Your Account', () => Navigator.push(context, MaterialPageRoute(builder: (context) => const YourAccountScreen()))),
-                const SizedBox(height: 20),
-                _buildDrawerItem('FAQ', () => Navigator.push(context, MaterialPageRoute(builder: (context) => const FaqScreen()))),
-                const Spacer(),
-                ListTile(
-                  leading: const Icon(Icons.logout, color: Colors.white),
-                  title: const Text('Log out', style: TextStyle(color: Colors.white, fontSize: 20)),
-                  onTap: () {
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(builder: (context) => const LoginScreen()),
-                      (Route<dynamic> route) => false,
-                    );
-                  },
+                 _buildDrawerItem('Your Account', () => Navigator.push(context, MaterialPageRoute(builder: (context) => YourAccountScreen(token: widget.token)))),
+                 const SizedBox(height: 20),
+                 _buildDrawerItem('FAQ', () => Navigator.push(context, MaterialPageRoute(builder: (context) => const FaqScreen()))),
+                 const Spacer(),
+                 ListTile(
+                    leading: const Icon(Icons.logout, color: Colors.white),
+                    title: const Text('Log out', style: TextStyle(color: Colors.white, fontSize: 20)),
+                    onTap: () {
+                        Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(builder: (context) => const LoginScreen()),
+                        (Route<dynamic> route) => false,
+                        );
+                    },
                 ),
               ],
             ),
           ),
 
-          //Menu wysuwane hamburger
+          //Prawe Menu
           _buildSlidingMenu(
             isOpen: _isRightMenuOpen,
             alignment: Alignment.centerRight,
@@ -198,7 +197,7 @@ class _HomeScreenState extends State<HomeScreen> {
       right: !isLeft ? (isOpen ? 0 : -screenWidth) : null,
       width: screenWidth * 1.0,
       child: Material(
-        color: Colors.black.withValues(alpha: 0.5, colorSpace: ColorSpace.sRGB),
+        color: Colors.black.withValues(alpha: 0.85, colorSpace: ColorSpace.sRGB),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 40.0),
           child: child,
