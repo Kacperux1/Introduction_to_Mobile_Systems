@@ -22,7 +22,7 @@ class _LoadingScreenState extends State<LoadingScreen>
   late final AnimationController _logoBlinkController;
   late final AnimationController _dotsController;
 
-  final String _baseUrl = 'http://10.0.2.2:8080'; // 10.0.2.2 Android emulator (localhost na komputerze)
+  final String _baseUrl = 'http://10.0.2.2:8080'; // 10.0.2.2 Android emulator
 
   @override
   void initState() {
@@ -59,7 +59,6 @@ class _LoadingScreenState extends State<LoadingScreen>
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body);
         final String token = responseBody['token'];
-        print('Login successful. Token: $token');
 
         Navigator.pushAndRemoveUntil(
           context,
@@ -67,15 +66,14 @@ class _LoadingScreenState extends State<LoadingScreen>
           (route) => false,
         );
       } else {
-        _handleLoginError('Login failed: ${response.body}');
+        _handleLoginError('Invalid credentials, please try again.');
       }
     } catch (e) {
-      _handleLoginError('An error occurred: $e');
+      _handleLoginError('Could not connect to the server.');
     }
   }
 
   void _handleLoginError(String message) {
-    print(message);
     if (mounted) {
       Navigator.of(context).pop(message);
     }
@@ -100,7 +98,6 @@ class _LoadingScreenState extends State<LoadingScreen>
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              //Logo
               FadeTransition(
                 opacity: Tween<double>(begin: 0.3, end: 1.0).animate(_logoBlinkController),
                 child: SvgPicture.asset(
@@ -108,29 +105,24 @@ class _LoadingScreenState extends State<LoadingScreen>
                   height: 80,
                 ),
               ),
-
-              //Animowane kółka
               AnimatedBuilder(
                 animation: _rotationController,
                 builder: (context, child) {
                   final angle = _rotationController.value * 2 * math.pi;
                   const radius = 80.0;
-                  
                   final bool isIcon1InFront = math.sin(angle) > 0;
 
                   final icon1 = _buildAnimatedIcon(
-                    angle: angle, 
-                    radius: radius, 
-                    assetPath: 'assets/icons/Dollar.svg',
-                    scaleFactor: 0.4
-                  );
+                      angle: angle,
+                      radius: radius,
+                      assetPath: 'assets/icons/Dollar.svg',
+                      scaleFactor: 0.4);
 
                   final icon2 = _buildAnimatedIcon(
-                    angle: angle + math.pi,
-                    radius: radius, 
-                    assetPath: 'assets/icons/Book.svg',
-                    scaleFactor: 0.4
-                  );
+                      angle: angle + math.pi,
+                      radius: radius,
+                      assetPath: 'assets/icons/Book.svg',
+                      scaleFactor: 0.4);
 
                   return SizedBox(
                     height: 200,
@@ -142,8 +134,6 @@ class _LoadingScreenState extends State<LoadingScreen>
                   );
                 },
               ),
-
-              //Loading...
               AnimatedBuilder(
                 animation: _dotsController,
                 builder: (context, child) {
@@ -151,7 +141,8 @@ class _LoadingScreenState extends State<LoadingScreen>
                   final dots = '.' * (dotCount % 4);
                   return Text(
                     'Loading$dots',
-                    style: const TextStyle(color: Colors.white, fontSize: 24, letterSpacing: 2.0),
+                    style: const TextStyle(
+                        color: Colors.white, fontSize: 24, letterSpacing: 2.0),
                   );
                 },
               ),
@@ -162,14 +153,17 @@ class _LoadingScreenState extends State<LoadingScreen>
     );
   }
 
-  Widget _buildAnimatedIcon({required double angle, required double radius,
-    required String assetPath, required double scaleFactor,}) {
+  Widget _buildAnimatedIcon(
+      {required double angle,
+      required double radius,
+      required String assetPath,
+      required double scaleFactor}) {
     final sinAngle = math.sin(angle);
     final scale = 1.0 + sinAngle * scaleFactor;
     return Transform.translate(
       offset: Offset(
-        radius * math.cos(angle), //Ruch horyzontalny
-        0, //Ruch wertykalny
+        radius * math.cos(angle),
+        0,
       ),
       child: Transform.scale(
         scale: scale,
@@ -185,11 +179,11 @@ class _LoadingScreenState extends State<LoadingScreen>
         color: Colors.white,
         shape: BoxShape.circle,
         boxShadow: [
-            BoxShadow(
-                color: Colors.black26,
-                blurRadius: 10,
-                offset: Offset(0, 4),
-            ),
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
         ],
       ),
       child: SvgPicture.asset(

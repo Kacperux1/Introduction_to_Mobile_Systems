@@ -2,11 +2,13 @@ package finlandia40.user.business;
 
 import finlandia40.user.data.UserRepository;
 import finlandia40.user.model.UserPostgres;
+import finlandia40.user.web.UserController;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 
@@ -39,5 +41,15 @@ public class UserService implements UserDetailsService {
     public UserPostgres loadUserByLogin(String login) {
         return userRepository.findByLogin(login)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with login: " + login));
+    }
+
+    @Transactional
+    public void updateUser(String login, UserController.UpdateProfileRequest request) {
+        UserPostgres user = loadUserByLogin(login);
+        user.setEmail(request.email());
+        user.setNumber(request.number());
+        user.setCountry(request.country());
+        user.setCity(request.city());
+        userRepository.save(user);
     }
 }

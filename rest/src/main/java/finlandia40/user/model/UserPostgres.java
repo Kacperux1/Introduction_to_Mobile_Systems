@@ -3,6 +3,7 @@ package finlandia40.user.model;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
 @NoArgsConstructor
@@ -16,19 +17,23 @@ public class UserPostgres {
     @Column(nullable = false, unique = true)
     private String login;
 
-    @Column(length = 100, nullable = false)
+    @Column(nullable = false)
     private String password;
 
     @Column(nullable = false, unique = true)
+    @Setter
     private String email;
 
     @Column
+    @Setter
     private String number;
 
     @Column
+    @Setter
     private String country;
 
     @Column
+    @Setter
     private String city;
 
     public UserPostgres(String login, String password, String email, String number, String country, String city) {

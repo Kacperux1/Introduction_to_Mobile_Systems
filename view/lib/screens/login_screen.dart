@@ -14,7 +14,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  void _loginPressed() {
+  void _loginPressed() async {
     FocusScope.of(context).unfocus();
     final username = _usernameController.text;
     final password = _passwordController.text;
@@ -24,19 +24,7 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // LoadingScreen (podanie danych uwierzytelniających)
-    try {
-      _navigateToLoadingScreen(username, password);
-    } catch (e) {
-      _showErrorSnackBar('An error occurred: $e');
-    }
-  }
-
-  void _navigateToLoadingScreen(String username, String password) {
-    if (!mounted) {
-      return;
-    }
-    Navigator.push(
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => LoadingScreen(
@@ -45,6 +33,10 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
+
+    if (result is String && mounted) {
+      _showErrorSnackBar(result);
+    }
   }
 
   void _navigateToRegisterScreen() {
@@ -76,65 +68,68 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SvgPicture.asset(
-                'assets/logo/Logo.svg',
-                height: 100,
-              ),
-              const SizedBox(height: 60),
-              const Text('Username:', style: TextStyle(color: Colors.white, fontSize: 16)),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _usernameController,
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.grey[300],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30.0),
-                    borderSide: BorderSide.none,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(height: 100),
+                SvgPicture.asset(
+                  'assets/logo/Logo.svg',
+                  height: 100,
+                ),
+                const SizedBox(height: 60),
+                const Text('Username:', style: TextStyle(color: Colors.white, fontSize: 16)),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _usernameController,
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Colors.grey[300],
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30.0),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  keyboardType: TextInputType.text,
+                ),
+                const SizedBox(height: 24),
+                const Text('Password:', style: TextStyle(color: Colors.white, fontSize: 16)),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Colors.grey[300],
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30.0),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
                 ),
-                keyboardType: TextInputType.text,
-              ),
-              const SizedBox(height: 24),
-              const Text('Password:', style: TextStyle(color: Colors.white, fontSize: 16)),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.grey[300],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30.0),
-                    borderSide: BorderSide.none,
+                const SizedBox(height: 40),
+                ElevatedButton(
+                  onPressed: _loginPressed,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey[300],
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30.0),
+                    ),
+                  ),
+                  child: const Text('Log in', style: TextStyle(color: Colors.black, fontSize: 20)),
+                ),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: _navigateToRegisterScreen,
+                  child: const Text(
+                    'Don\'t have an account? Register',
+                    style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
                 ),
-              ),
-              const SizedBox(height: 40),
-              ElevatedButton(
-                onPressed: _loginPressed,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey[300],
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30.0),
-                  ),
-                ),
-                child: const Text('Log in', style: TextStyle(color: Colors.black, fontSize: 20)),
-              ),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: _navigateToRegisterScreen,
-                child: const Text(
-                  "Don't have an account? Register'",
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
