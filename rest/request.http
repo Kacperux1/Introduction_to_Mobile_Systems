@@ -1,0 +1,11 @@
+POST http://localhost:8080/auth/register
+Content-Type: application/json
+
+{
+  "login": "testuser",
+  "password": "password",
+  "email": "test@example.com",
+  "number": "123456789",
+  "country": "Poland",
+  "city": "Warsaw"
+}
