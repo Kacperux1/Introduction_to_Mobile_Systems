@@ -4,7 +4,9 @@ import 'package:view/screens/loading_screen.dart';
 import 'package:view/screens/register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final VoidCallback onLoginSuccess;
+
+  const LoginScreen({super.key, required this.onLoginSuccess});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -34,7 +36,9 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
 
-    if (result is String && mounted) {
+    if (result == true) {
+      widget.onLoginSuccess();
+    } else if (result is String && mounted) {
       _showErrorSnackBar(result);
     }
   }

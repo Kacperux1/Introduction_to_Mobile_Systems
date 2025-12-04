@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:view/screens/home_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -45,16 +44,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
 
       if (response.statusCode == 200) {
-        final responseBody = jsonDecode(response.body);
-        final String token = responseBody['token'];
-        print('Registration successful. Token: $token');
-
         if (mounted) {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => HomeScreen(token: token)),
-            (route) => false,
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Registration successful! You can now log in.'),
+              backgroundColor: Colors.green,
+            ),
           );
+          Navigator.of(context).pop();
         }
       } else {
         _showErrorSnackBar('Registration failed: ${response.body}');

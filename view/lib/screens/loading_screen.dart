@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:math' as math;
 import 'package:http/http.dart' as http;
-import 'package:view/screens/home_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoadingScreen extends StatefulWidget {
   final String username;
@@ -60,11 +60,10 @@ class _LoadingScreenState extends State<LoadingScreen>
         final responseBody = jsonDecode(response.body);
         final String token = responseBody['token'];
 
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => HomeScreen(token: token)),
-          (route) => false,
-        );
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('jwt_token', token);
+
+        Navigator.of(context).pop(true);
       } else {
         _handleLoginError('Invalid credentials, please try again.');
       }

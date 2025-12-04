@@ -8,8 +8,9 @@ import '../models/book.dart';
 
 class BookDetailsScreen extends StatefulWidget {
   final int bookId;
+  final bool isLoggedIn;
 
-  const BookDetailsScreen({super.key, required this.bookId});
+  const BookDetailsScreen({super.key, required this.bookId, required this.isLoggedIn});
 
   @override
   State<BookDetailsScreen> createState() => _BookDetailsScreenState();
@@ -42,61 +43,13 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   }
 
   void _refreshBookDetails() {
-    _bookFuture.then((book) async {
-      try {
-        final response = await http.get(
-          Uri.parse('http://10.0.2.2:8080/api/reviews?bookId=${book.id}'),
-          headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0',
-          },
-        );
-
-        if (response.statusCode == 200) {
-          final List<dynamic> reviewData = jsonDecode(response.body);
-          final List<Review> newReviews =
-              reviewData.map((data) => Review.fromJson(data)).toList();
-
-          final newBook = Book(
-            id: book.id,
-            title: book.title,
-            author: book.author,
-            condition: book.condition,
-            price: book.price,
-            imageUrl: book.imageUrl,
-            sellerLogin: book.sellerLogin,
-            sellerEmail: book.sellerEmail,
-            reviews: newReviews,
-          );
-
-          if (mounted) {
-            setState(() {
-              _bookFuture = Future.value(newBook);
-            });
-          }
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Failed to refresh reviews.')),
-            );
-          }
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error refreshing reviews: $e')),
-          );
-        }
-      }
+    setState(() {
+      _bookFuture = _fetchBookDetails();
     });
   }
 
   Future<bool> _submitReview(int bookId, int rating, String comment) async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('jwt_token');
-
-    if (token == null) {
+    if (!widget.isLoggedIn) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -105,6 +58,9 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
       }
       return false;
     }
+
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token');
 
     try {
       final response = await http
@@ -339,17 +295,18 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
             const SizedBox(height: 16.0),
 
-            ElevatedButton(
-              onPressed: () => _showReviewDialog(book),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                padding: const EdgeInsets.symmetric(vertical: 12.0),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30.0)),
+            if (widget.isLoggedIn)
+              ElevatedButton(
+                onPressed: () => _showReviewDialog(book),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  padding: const EdgeInsets.symmetric(vertical: 12.0),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30.0)),
+                ),
+                child: const Text('Add Your Review',
+                    style: TextStyle(fontSize: 18, color: Colors.white)),
               ),
-              child: const Text('Add Your Review',
-                  style: TextStyle(fontSize: 18, color: Colors.white)),
-            ),
 
             const SizedBox(height: 24.0),
 

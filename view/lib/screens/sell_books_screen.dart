@@ -121,7 +121,7 @@ class _SellBooksScreenState extends State<SellBooksScreen> {
 
   Widget _buildConditionDropdown() {
     return DropdownButtonFormField<String>(
-      value: _selectedCondition,
+      initialValue: _selectedCondition,
       items: ['Like New', 'Very Good', 'Good', 'Acceptable', 'Visibly Used']
           .map((condition) => DropdownMenuItem(value: condition, child: Text(condition)))
           .toList(),

@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:view/screens/login_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'buy_books_screen.dart';
 import 'sell_books_screen.dart';
 import 'review_books_screen.dart';
@@ -12,8 +12,9 @@ import 'language_screen.dart';
 import 'preferences_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  final String token;
-  const HomeScreen({required this.token, super.key});
+  final bool isLoggedIn;
+  final VoidCallback onLogout;
+  const HomeScreen({required this.isLoggedIn, required this.onLogout, super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -42,6 +43,17 @@ class _HomeScreenState extends State<HomeScreen> {
       _isRightMenuOpen = false;
       _isLeftMenuOpen = false;
     });
+  }
+
+  void _navigateToYourAccount() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token');
+    if (token != null && mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => YourAccountScreen(token: token)),
+      );
+    }
   }
 
   @override
@@ -92,7 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const BuyBooksScreen()),
+                      MaterialPageRoute(builder: (context) => BuyBooksScreen(isLoggedIn: widget.isLoggedIn)),
                     );
                   },
                 ),
@@ -142,19 +154,14 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                 _buildDrawerItem('Your Account', () => Navigator.push(context, MaterialPageRoute(builder: (context) => YourAccountScreen(token: widget.token)))),
+                 _buildDrawerItem('Your Account', _navigateToYourAccount),
                  const SizedBox(height: 20),
                  _buildDrawerItem('FAQ', () => Navigator.push(context, MaterialPageRoute(builder: (context) => const FaqScreen()))),
                  const Spacer(),
                  ListTile(
                     leading: const Icon(Icons.logout, color: Colors.white),
                     title: const Text('Log out', style: TextStyle(color: Colors.white, fontSize: 20)),
-                    onTap: () {
-                        Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(builder: (context) => const LoginScreen()),
-                        (Route<dynamic> route) => false,
-                        );
-                    },
+                    onTap: widget.onLogout,
                 ),
               ],
             ),
@@ -197,7 +204,7 @@ class _HomeScreenState extends State<HomeScreen> {
       right: !isLeft ? (isOpen ? 0 : -screenWidth) : null,
       width: screenWidth * 1.0,
       child: Material(
-        color: Colors.black.withValues(alpha: 0.85, colorSpace: ColorSpace.sRGB),
+        color: Colors.black.withOpacity(0.85),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 40.0),
           child: child,

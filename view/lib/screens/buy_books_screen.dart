@@ -7,7 +7,8 @@ import '../models/book.dart';
 import 'book_details_screen.dart';
 
 class BuyBooksScreen extends StatefulWidget {
-  const BuyBooksScreen({super.key});
+  final bool isLoggedIn;
+  const BuyBooksScreen({required this.isLoggedIn, super.key});
 
   @override
   State<BuyBooksScreen> createState() => _BuyBooksScreenState();
@@ -118,7 +119,7 @@ class _BuyBooksScreenState extends State<BuyBooksScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => BookDetailsScreen(bookId: book.id),
+            builder: (context) => BookDetailsScreen(bookId: book.id, isLoggedIn: widget.isLoggedIn),
           ),
         );
       },
