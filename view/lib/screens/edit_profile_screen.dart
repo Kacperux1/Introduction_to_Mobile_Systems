@@ -63,45 +63,60 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-    void _showErrorSnackBar(String message) {
+  void _showErrorSnackBar(String message) {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text(message), 
+          backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isHighContrast = theme.scaffoldBackgroundColor == const Color(0xFF301934);
+    final isDefaultMode = theme.scaffoldBackgroundColor == const Color(0xFF00008B);
+    final isDarkMode = theme.scaffoldBackgroundColor == Colors.black;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF00008B),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Edit Profile', style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.red,
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text('Edit Profile', style: TextStyle(color: theme.appBarTheme.foregroundColor)),
+        backgroundColor: theme.appBarTheme.backgroundColor,
+        iconTheme: theme.appBarTheme.iconTheme ?? IconThemeData(color: theme.appBarTheme.foregroundColor),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildTextField(_emailController, 'Email'),
-            _buildTextField(_numberController, 'Number'),
-            _buildTextField(_countryController, 'Country'),
-            _buildTextField(_cityController, 'City'),
+            _buildTextField(_emailController, 'Email', theme),
+            _buildTextField(_numberController, 'Number', theme),
+            _buildTextField(_countryController, 'Country', theme),
+            _buildTextField(_cityController, 'City', theme),
             const SizedBox(height: 40),
-            ElevatedButton(
-              onPressed: _updateProfile,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey[300],
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30.0),
+            Semantics(
+              button: true,
+              label: 'Save profile changes',
+              child: ElevatedButton(
+                onPressed: _updateProfile,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isHighContrast ? Colors.black : (isDefaultMode ? Colors.grey[300] : theme.colorScheme.secondaryContainer),
+                  foregroundColor: isHighContrast ? Colors.yellow : (isDefaultMode ? Colors.black : theme.colorScheme.onSecondaryContainer),
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30.0),
+                    side: isHighContrast ? const BorderSide(color: Colors.yellow, width: 2) : BorderSide.none,
+                  ),
                 ),
-              ),
-              child: const Text(
-                'Save Changes',
-                style: TextStyle(color: Colors.black, fontSize: 20),
+                child: const Text(
+                  'Save Changes',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ],
@@ -110,22 +125,36 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String label) {
+  Widget _buildTextField(TextEditingController controller, String label, ThemeData theme) {
+    final isHighContrast = theme.scaffoldBackgroundColor == const Color(0xFF301934);
+    final isDarkMode = theme.scaffoldBackgroundColor == Colors.black;
+    final isDefaultMode = theme.scaffoldBackgroundColor == const Color(0xFF00008B);
+
+    Color labelColor = (isDarkMode || isDefaultMode) ? Colors.white : (isHighContrast ? Colors.yellow : Colors.black);
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: Colors.white, fontSize: 16)),
+          Text(label, style: TextStyle(color: labelColor, fontSize: 16, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
-          TextFormField(
-            controller: controller,
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: Colors.grey[300],
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(30.0),
-                borderSide: BorderSide.none,
+          Semantics(
+            label: 'Input field for $label',
+            child: TextFormField(
+              controller: controller,
+              style: TextStyle(color: isHighContrast ? Colors.yellow : Colors.black),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: isHighContrast ? Colors.black : Colors.grey[300],
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30.0),
+                  borderSide: isHighContrast ? const BorderSide(color: Colors.yellow, width: 2) : BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30.0),
+                  borderSide: isHighContrast ? const BorderSide(color: Colors.yellow, width: 2) : BorderSide.none,
+                ),
               ),
             ),
           ),

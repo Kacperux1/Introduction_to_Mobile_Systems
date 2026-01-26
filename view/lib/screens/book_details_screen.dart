@@ -111,11 +111,12 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     }
   }
 
-  Future<void> _showReviewDialog(Book book) async {
+  Future<void> _showReviewDialog(Book book, ThemeData theme) async {
     final formKey = GlobalKey<FormState>();
     final commentController = TextEditingController();
     int rating = 3;
     bool isSubmitting = false;
+    final isHighContrast = theme.scaffoldBackgroundColor == const Color(0xFF301934);
 
     final reviewSubmitted = await showDialog<bool>(
       context: context,
@@ -124,13 +125,14 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: Text('Review "${book.title}"'),
+              backgroundColor: isHighContrast ? Colors.black : theme.dialogBackgroundColor,
+              title: Text('Review "${book.title}"', style: TextStyle(color: isHighContrast ? Colors.yellow : null)),
               content: Form(
                 key: formKey,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('Your Rating:'),
+                    Text('Your Rating:', style: TextStyle(color: isHighContrast ? Colors.yellow : null)),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(5, (index) {
@@ -151,7 +153,12 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                     ),
                     TextFormField(
                       controller: commentController,
-                      decoration: const InputDecoration(labelText: 'Comment'),
+                      style: TextStyle(color: isHighContrast ? Colors.yellow : null),
+                      decoration: InputDecoration(
+                        labelText: 'Comment',
+                        labelStyle: TextStyle(color: isHighContrast ? Colors.yellow : null),
+                        enabledBorder: isHighContrast ? const UnderlineInputBorder(borderSide: BorderSide(color: Colors.yellow)) : null,
+                      ),
                       maxLines: 3,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -168,7 +175,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                   onPressed: isSubmitting
                       ? null
                       : () => Navigator.of(dialogContext).pop(false),
-                  child: const Text('Cancel'),
+                  child: Text('Cancel', style: TextStyle(color: isHighContrast ? Colors.yellow : null)),
                 ),
                 TextButton(
                   onPressed: isSubmitting
@@ -191,7 +198,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Submit'),
+                      : Text('Submit', style: TextStyle(color: isHighContrast ? Colors.yellow : null)),
                 ),
               ],
             );
@@ -207,12 +214,13 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFF00008B),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Book Details', style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.red,
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text('Book Details', style: TextStyle(color: theme.appBarTheme.foregroundColor)),
+        backgroundColor: theme.appBarTheme.backgroundColor,
+        iconTheme: theme.appBarTheme.iconTheme ?? IconThemeData(color: theme.appBarTheme.foregroundColor),
       ),
       body: FutureBuilder<Book>(
         future: _bookFuture,
@@ -225,7 +233,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                     style: const TextStyle(color: Colors.red)));
           } else if (snapshot.hasData) {
             final book = snapshot.data!;
-            return _buildBookDetails(context, book);
+            return _buildBookDetails(context, book, theme);
           } else {
             return const Center(child: Text('Book not found.'));
           }
@@ -234,7 +242,22 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     );
   }
 
-  Widget _buildBookDetails(BuildContext context, Book book) {
+  Widget _buildBookDetails(BuildContext context, Book book, ThemeData theme) {
+    final isHighContrast = theme.scaffoldBackgroundColor == const Color(0xFF301934);
+    final isDarkMode = theme.scaffoldBackgroundColor == Colors.black;
+    final isDefaultMode = theme.scaffoldBackgroundColor == const Color(0xFF00008B);
+
+    Color textColor;
+    if (isHighContrast) {
+      textColor = Colors.yellow;
+    } else if (isDarkMode || isDefaultMode) {
+      textColor = Colors.white;
+    } else {
+      textColor = Colors.black;
+    }
+
+    Color cardTextColor = isHighContrast ? Colors.yellow : Colors.black;
+
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -242,91 +265,105 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Book Image
-            ClipRRect(
-              borderRadius: BorderRadius.circular(20.0),
-              child: CachedNetworkImage(
-                imageUrl: book.imageUrl,
-                fit: BoxFit.cover,
-                placeholder: (context, url) =>
-                    const Center(child: CircularProgressIndicator()),
-                errorWidget: (context, url, error) =>
-                    const Icon(Icons.error, color: Colors.red, size: 100),
+            Semantics(
+              label: 'Book cover image',
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20.0),
+                child: CachedNetworkImage(
+                  imageUrl: book.imageUrl,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) =>
+                      const Center(child: CircularProgressIndicator()),
+                  errorWidget: (context, url, error) =>
+                      const Icon(Icons.error, color: Colors.red, size: 100),
+                ),
               ),
             ),
             const SizedBox(height: 24.0),
 
             //Szczegóły
-            Card(
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20.0)),
-              color: Colors.grey[300],
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Title: ${book.title}',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 22)),
-                    const SizedBox(height: 8.0),
-                    Text('Author: ${book.author}',
-                        style: const TextStyle(fontSize: 18)),
-                    const SizedBox(height: 12.0),
-                    Text('Condition: ${book.condition}',
-                        style: const TextStyle(
-                            fontSize: 16, fontStyle: FontStyle.italic)),
-                    const SizedBox(height: 12.0),
-                    Text('Price: ${book.price.toStringAsFixed(2)}zł',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 24,
-                            color: Colors.green[800])),
-                  ],
+            Semantics(
+              container: true,
+              child: Card(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20.0),
+                    side: isHighContrast ? const BorderSide(color: Colors.yellow, width: 2) : BorderSide.none),
+                color: isHighContrast ? Colors.black : (isDefaultMode ? const Color(0xFFE0E0E0) : theme.cardColor),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Title: ${book.title}',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 22, color: cardTextColor)),
+                      const SizedBox(height: 8.0),
+                      Text('Author: ${book.author}',
+                          style: TextStyle(fontSize: 18, color: cardTextColor)),
+                      const SizedBox(height: 12.0),
+                      Text('Condition: ${book.condition}',
+                          style: TextStyle(
+                              fontSize: 16, fontStyle: FontStyle.italic, color: cardTextColor)),
+                      const SizedBox(height: 12.0),
+                      Text('Price: ${book.price.toStringAsFixed(2)}zł',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 24,
+                              color: isHighContrast ? Colors.yellow : (isDarkMode ? Colors.greenAccent : Colors.green[800]))),
+                    ],
+                  ),
                 ),
               ),
             ),
             const SizedBox(height: 24.0),
 
             // Sprzedawca
-            if (book.sellerLogin != null) _buildSellerSection(context, book),
+            if (book.sellerLogin != null) _buildSellerSection(context, book, theme),
 
             // Recenzje
-            _buildReviewsSection(book),
+            _buildReviewsSection(book, theme),
 
             const SizedBox(height: 16.0),
 
             if (widget.isLoggedIn)
-              ElevatedButton(
-                onPressed: () => _showReviewDialog(book),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  padding: const EdgeInsets.symmetric(vertical: 12.0),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30.0)),
+              Semantics(
+                button: true,
+                child: ElevatedButton(
+                  onPressed: () => _showReviewDialog(book, theme),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isHighContrast ? Colors.black : Colors.blue,
+                    padding: const EdgeInsets.symmetric(vertical: 12.0),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30.0),
+                        side: isHighContrast ? const BorderSide(color: Colors.yellow, width: 2) : BorderSide.none),
+                  ),
+                  child: Text('Add Your Review',
+                      style: TextStyle(fontSize: 18, color: isHighContrast ? Colors.yellow : Colors.white)),
                 ),
-                child: const Text('Add Your Review',
-                    style: TextStyle(fontSize: 18, color: Colors.white)),
               ),
 
             const SizedBox(height: 24.0),
 
             // Buy Now
-            ElevatedButton(
-              onPressed: () {
-                // TODO: Implementacja logiki
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text('Purchase functionality not implemented yet.')),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30.0)),
+            Semantics(
+              button: true,
+              child: ElevatedButton(
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Purchase functionality not implemented yet.')),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isHighContrast ? Colors.black : Colors.green,
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30.0),
+                      side: isHighContrast ? const BorderSide(color: Colors.yellow, width: 2) : BorderSide.none),
+                ),
+                child: Text('Buy Now',
+                    style: TextStyle(fontSize: 20, color: isHighContrast ? Colors.yellow : Colors.white)),
               ),
-              child: const Text('Buy Now',
-                  style: TextStyle(fontSize: 20, color: Colors.white)),
             ),
           ],
         ),
@@ -334,29 +371,38 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     );
   }
 
-  Widget _buildSellerSection(BuildContext context, Book book) {
+  Widget _buildSellerSection(BuildContext context, Book book, ThemeData theme) {
+    final isHighContrast = theme.scaffoldBackgroundColor == const Color(0xFF301934);
+    final isDefaultMode = theme.scaffoldBackgroundColor == const Color(0xFF00008B);
+    final isDarkMode = theme.scaffoldBackgroundColor == Colors.black;
+
+    Color sectionHeaderColor = (isHighContrast) ? Colors.yellow : Colors.white;
+    if (!isHighContrast && !isDefaultMode && !isDarkMode) sectionHeaderColor = Colors.black;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Sold by',
           style: TextStyle(
-              color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+              color: sectionHeaderColor, fontSize: 22, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16.0),
         Card(
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
-          color: Colors.grey[300],
+              RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15.0),
+                side: isHighContrast ? const BorderSide(color: Colors.yellow, width: 2) : BorderSide.none),
+          color: isHighContrast ? Colors.black : (isDefaultMode ? const Color(0xFFE0E0E0) : theme.cardColor),
           child: ListTile(
-            leading: const Icon(Icons.person, size: 40),
+            leading: Icon(Icons.person, size: 40, color: isHighContrast ? Colors.yellow : null),
             title: Text(book.sellerLogin!,
                 style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            subtitle: Text(book.sellerEmail ?? 'Email not available'),
+                    TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: isHighContrast ? Colors.yellow : Colors.black)),
+            subtitle: Text(book.sellerEmail ?? 'Email not available', 
+              style: TextStyle(color: isHighContrast ? Colors.yellow.withOpacity(0.7) : Colors.black54)),
             trailing: ElevatedButton(
               onPressed: () {
-                // TODO: Implementacja chatu
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                       content: Text(
@@ -364,12 +410,13 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                 );
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
+                backgroundColor: isHighContrast ? Colors.black : Colors.blue,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20.0)),
+                    borderRadius: BorderRadius.circular(20.0),
+                    side: isHighContrast ? const BorderSide(color: Colors.yellow, width: 2) : BorderSide.none),
               ),
               child:
-                  const Text('Contact', style: TextStyle(color: Colors.white)),
+                  Text('Contact', style: TextStyle(color: isHighContrast ? Colors.yellow : Colors.white)),
             ),
           ),
         ),
@@ -378,13 +425,20 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     );
   }
 
-  Widget _buildReviewsSection(Book book) {
+  Widget _buildReviewsSection(Book book, ThemeData theme) {
+    final isHighContrast = theme.scaffoldBackgroundColor == const Color(0xFF301934);
+    final isDefaultMode = theme.scaffoldBackgroundColor == const Color(0xFF00008B);
+    final isDarkMode = theme.scaffoldBackgroundColor == Colors.black;
+
+    Color sectionHeaderColor = (isHighContrast) ? Colors.yellow : Colors.white;
+    if (!isHighContrast && !isDefaultMode && !isDarkMode) sectionHeaderColor = Colors.black;
+
     if (book.reviews.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 16.0),
+          padding: const EdgeInsets.symmetric(vertical: 16.0),
           child: Text('No reviews yet.',
-              style: TextStyle(color: Colors.white, fontSize: 16)),
+              style: TextStyle(color: sectionHeaderColor, fontSize: 16)),
         ),
       );
     }
@@ -392,10 +446,10 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Reviews',
           style: TextStyle(
-              color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+              color: sectionHeaderColor, fontSize: 22, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16.0),
         ListView.builder(
@@ -407,8 +461,9 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             return Card(
               margin: const EdgeInsets.only(bottom: 12.0),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15.0)),
-              color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(15.0),
+                  side: isHighContrast ? const BorderSide(color: Colors.yellow, width: 2) : BorderSide.none),
+              color: isHighContrast ? Colors.black : (isDefaultMode ? const Color(0xFFE0E0E0) : theme.cardColor),
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
                 child: Column(
@@ -418,13 +473,13 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(review.reviewerName,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 16)),
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16, color: isHighContrast ? Colors.yellow : Colors.black)),
                         _buildRatingStars(review.rating),
                       ],
                     ),
                     const SizedBox(height: 8.0),
-                    Text(review.comment, style: const TextStyle(fontSize: 14)),
+                    Text(review.comment, style: TextStyle(fontSize: 14, color: isHighContrast ? Colors.yellow : Colors.black)),
                   ],
                 ),
               ),

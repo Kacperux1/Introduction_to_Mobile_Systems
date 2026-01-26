@@ -33,11 +33,12 @@ class _ReviewBooksScreenState extends State<ReviewBooksScreen> {
     }
   }
 
-  Future<void> _showReviewDialog(Book book) async {
+  Future<void> _showReviewDialog(Book book, ThemeData theme) async {
     final formKey = GlobalKey<FormState>();
     final commentController = TextEditingController();
     int rating = 3;
     bool isSubmitting = false;
+    final isHighContrast = theme.scaffoldBackgroundColor == const Color(0xFF301934);
 
     final result = await showDialog<bool>(
       context: context,
@@ -46,13 +47,14 @@ class _ReviewBooksScreenState extends State<ReviewBooksScreen> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: Text('Review "${book.title}"'),
+              backgroundColor: isHighContrast ? Colors.black : theme.dialogBackgroundColor,
+              title: Text('Review "${book.title}"', style: TextStyle(color: isHighContrast ? Colors.yellow : null)),
               content: Form(
                 key: formKey,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('Your Rating:'),
+                    Text('Your Rating:', style: TextStyle(color: isHighContrast ? Colors.yellow : null)),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(5, (index) {
@@ -71,7 +73,12 @@ class _ReviewBooksScreenState extends State<ReviewBooksScreen> {
                     ),
                     TextFormField(
                       controller: commentController,
-                      decoration: const InputDecoration(labelText: 'Comment'),
+                      style: TextStyle(color: isHighContrast ? Colors.yellow : null),
+                      decoration: InputDecoration(
+                        labelText: 'Comment',
+                        labelStyle: TextStyle(color: isHighContrast ? Colors.yellow : null),
+                        enabledBorder: isHighContrast ? const UnderlineInputBorder(borderSide: BorderSide(color: Colors.yellow)) : null,
+                      ),
                       maxLines: 3,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -87,8 +94,8 @@ class _ReviewBooksScreenState extends State<ReviewBooksScreen> {
                 TextButton(
                   onPressed: isSubmitting
                       ? null
-                      : () => Navigator.of(context).pop(false),
-                  child: const Text('Cancel'),
+                      : () => Navigator.of(dialogContext).pop(false),
+                  child: Text('Cancel', style: TextStyle(color: isHighContrast ? Colors.yellow : null)),
                 ),
                 TextButton(
                   onPressed: isSubmitting
@@ -101,7 +108,7 @@ class _ReviewBooksScreenState extends State<ReviewBooksScreen> {
                             final success = await _submitReview(
                                 book.id, rating, commentController.text);
                             if (mounted) {
-                              Navigator.of(context).pop(success);
+                              Navigator.of(dialogContext).pop(success);
                             }
                           }
                         },
@@ -110,7 +117,7 @@ class _ReviewBooksScreenState extends State<ReviewBooksScreen> {
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Text('Submit'),
+                      : Text('Submit', style: TextStyle(color: isHighContrast ? Colors.yellow : null)),
                 ),
               ],
             );
@@ -190,12 +197,13 @@ class _ReviewBooksScreenState extends State<ReviewBooksScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFF00008B),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Write a Review', style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.blue,
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text('Write a Review', style: TextStyle(color: theme.appBarTheme.foregroundColor)),
+        backgroundColor: theme.appBarTheme.backgroundColor,
+        iconTheme: theme.appBarTheme.iconTheme ?? IconThemeData(color: theme.appBarTheme.foregroundColor),
       ),
       body: FutureBuilder<List<Book>>(
         future: _booksFuture,
@@ -210,7 +218,7 @@ class _ReviewBooksScreenState extends State<ReviewBooksScreen> {
             return ListView.builder(
               itemCount: snapshot.data!.length,
               itemBuilder: (context, index) {
-                return _buildBookCard(context, snapshot.data![index]);
+                return _buildBookCard(context, snapshot.data![index], theme);
               },
             );
           } else {
@@ -221,52 +229,73 @@ class _ReviewBooksScreenState extends State<ReviewBooksScreen> {
     );
   }
 
-  Widget _buildBookCard(BuildContext context, Book book) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
-      color: Colors.grey[300],
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10.0),
-              child: CachedNetworkImage(
-                imageUrl: book.imageUrl,
-                width: 80,
-                height: 120,
-                fit: BoxFit.cover,
-                placeholder: (context, url) =>
-                    const Center(child: CircularProgressIndicator()),
-                errorWidget: (context, url, error) =>
-                    const Icon(Icons.book, size: 50, color: Colors.white),
+  Widget _buildBookCard(BuildContext context, Book book, ThemeData theme) {
+    final isHighContrast = theme.scaffoldBackgroundColor == const Color(0xFF301934);
+    final isDarkMode = theme.scaffoldBackgroundColor == Colors.black;
+    final isDefaultMode = theme.scaffoldBackgroundColor == const Color(0xFF00008B);
+
+    Color textColor = isHighContrast ? Colors.yellow : Colors.black;
+    if (isDarkMode || isDefaultMode) {
+      // W kartach w trybach ciemnych nadal chcemy czarny tekst na szarym tle,
+      // chyba że to High Contrast
+    }
+
+    return Semantics(
+      container: true,
+      label: 'Book for review: ${book.title} by ${book.author}',
+      child: Card(
+        margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.0),
+            side: isHighContrast ? const BorderSide(color: Colors.yellow, width: 2) : BorderSide.none),
+        color: isHighContrast ? Colors.black : (isDefaultMode ? const Color(0xFFE0E0E0) : theme.cardColor),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10.0),
+                child: CachedNetworkImage(
+                  imageUrl: book.imageUrl,
+                  width: 80,
+                  height: 120,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) =>
+                      const Center(child: CircularProgressIndicator()),
+                  errorWidget: (context, url, error) =>
+                      const Icon(Icons.book, size: 50, color: Colors.white),
+                ),
               ),
-            ),
-            const SizedBox(width: 16.0),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(book.title,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 16)),
-                  const SizedBox(height: 4.0),
-                  Text(book.author, style: const TextStyle(fontSize: 14)),
-                ],
+              const SizedBox(width: 16.0),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(book.title,
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16, color: textColor)),
+                    const SizedBox(height: 4.0),
+                    Text(book.author, style: TextStyle(fontSize: 14, color: textColor)),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 16.0),
-            ElevatedButton(
-              onPressed: () => _showReviewDialog(book),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20.0)),
+              const SizedBox(width: 16.0),
+              Semantics(
+                button: true,
+                label: 'Add review for ${book.title}',
+                child: ElevatedButton(
+                  onPressed: () => _showReviewDialog(book, theme),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isHighContrast ? Colors.black : Colors.blue,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20.0),
+                        side: isHighContrast ? const BorderSide(color: Colors.yellow, width: 2) : BorderSide.none),
+                  ),
+                  child: Text('Review', style: TextStyle(color: isHighContrast ? Colors.yellow : Colors.white)),
+                ),
               ),
-              child: const Text('Review', style: TextStyle(color: Colors.white)),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
