@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../l10n_helper.dart';
+import '../main.dart';
 
 class FaqScreen extends StatelessWidget {
   const FaqScreen({super.key});
@@ -9,23 +11,25 @@ class FaqScreen extends StatelessWidget {
     final isHighContrast = theme.scaffoldBackgroundColor == const Color(0xFF301934);
     final isDarkMode = theme.scaffoldBackgroundColor == Colors.black;
     final isDefaultMode = theme.scaffoldBackgroundColor == const Color(0xFF00008B);
+    final s = S.of(context);
+    final themeSettings = ThemeSettings.of(context);
 
     final List<Map<String, String>> faqs = [
       {
-        'question': 'How do I buy a book?',
-        'answer': 'Navigate to the "Buy books" screen from the home page, browse the available titles, and click on the "Buy" button for the book you want.'
+        'question': s.get('faq_q1'),
+        'answer': s.get('faq_a1')
       },
       {
-        'question': 'Can I sell my old textbooks?',
-        'answer': 'Yes! Go to the "Sell books" screen, fill in the details about your book, and it will be listed for other students to buy.'
+        'question': s.get('faq_q2'),
+        'answer': s.get('faq_a2')
       },
       {
-        'question': 'How do I change my preferences?',
-        'answer': 'Open the right menu on the home screen and select "Preferences" to change the theme, contrast, and other settings.'
+        'question': s.get('faq_q3'),
+        'answer': s.get('faq_a3')
       },
       {
-        'question': 'Is my data secure?',
-        'answer': 'We take security seriously. Your data is encrypted and handled according to modern safety standards.'
+        'question': s.get('faq_q4'),
+        'answer': s.get('faq_a4')
       },
     ];
 
@@ -38,7 +42,7 @@ class FaqScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('FAQ', style: TextStyle(color: theme.appBarTheme.foregroundColor)),
+        title: Text(s.get('faq_title'), style: TextStyle(color: theme.appBarTheme.foregroundColor)),
         backgroundColor: theme.appBarTheme.backgroundColor,
         iconTheme: theme.appBarTheme.iconTheme ?? IconThemeData(color: theme.appBarTheme.foregroundColor),
       ),
@@ -47,35 +51,40 @@ class FaqScreen extends StatelessWidget {
         itemCount: faqs.length,
         itemBuilder: (context, index) {
           final faq = faqs[index];
+          final String faqDescription = '${faq['question']}. ${faq['answer']}';
+
           return Semantics(
             container: true,
-            label: 'FAQ item: ${faq['question']}',
+            label: s.get('faq_item_label', args: {'question': faq['question']!}),
             child: Card(
-              color: isHighContrast ? Colors.black : (isDefaultMode ? Colors.white.withOpacity(0.1) : theme.cardColor),
+              color: isHighContrast ? Colors.black : (isDefaultMode ? Colors.white.withOpacity(0.1) : (isDarkMode ? Colors.white.withOpacity(0.05) : theme.cardColor)),
               margin: const EdgeInsets.symmetric(vertical: 8.0),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(15.0),
                 side: isHighContrast ? const BorderSide(color: Colors.yellow, width: 2) : BorderSide.none,
               ),
-              child: ExpansionTile(
-                title: Text(
-                  faq['question']!,
-                  style: TextStyle(
-                    color: getTextColor(),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                iconColor: getTextColor(),
-                collapsedIconColor: getTextColor(),
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Text(
-                      faq['answer']!,
-                      style: TextStyle(color: getTextColor()),
+              child: InkWell(
+                onTap: () => themeSettings?.speak(faqDescription),
+                child: ExpansionTile(
+                  title: Text(
+                    faq['question']!,
+                    style: TextStyle(
+                      color: getTextColor(),
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                ],
+                  iconColor: getTextColor(),
+                  collapsedIconColor: getTextColor(),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text(
+                        faq['answer']!,
+                        style: TextStyle(color: getTextColor()),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           );

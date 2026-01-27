@@ -77,12 +77,12 @@ class _YourAccountScreenState extends State<YourAccountScreen> {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return CircularProgressIndicator(color: isDefaultMode ? Colors.white : theme.colorScheme.primary);
             } else if (snapshot.hasError) {
-              return Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.red));
+              return Text(s.get('error_occurred', args: {'error': snapshot.error.toString()}), style: const TextStyle(color: Colors.red));
             } else if (snapshot.hasData) {
               final user = snapshot.data!;
               return _buildProfileCard(user, theme, s);
             } else {
-              return Text('No user data found.', style: TextStyle(color: theme.textTheme.bodyLarge?.color));
+              return Text(s.get('no_user_data'), style: TextStyle(color: theme.textTheme.bodyLarge?.color));
             }
           },
         ),
@@ -107,8 +107,8 @@ class _YourAccountScreenState extends State<YourAccountScreen> {
     }
 
     String profileSemantics = s.locale.languageCode == 'pl'
-      ? 'Twój profil. Użytkownik: ${user.login}. Email: ${user.email}. Lokalizacja: ${user.city ?? "niepodana"}, ${user.country ?? "niepodany"}.'
-      : 'Your profile. Username: ${user.login}. Email: ${user.email}. Location: ${user.city ?? "not set"}, ${user.country ?? "not set"}.';
+      ? 'Twój profil. Użytkownik: ${user.login}. Email: ${user.email}. Lokalizacja: ${user.city ?? s.get("not_provided")}, ${user.country ?? s.get("not_provided")}.'
+      : 'Your profile. Username: ${user.login}. Email: ${user.email}. Location: ${user.city ?? s.get("not_provided")}, ${user.country ?? s.get("not_provided")}.';
 
     return Semantics(
       container: true,
@@ -151,7 +151,7 @@ class _YourAccountScreenState extends State<YourAccountScreen> {
             _buildInfoTile(
               icon: Icons.phone_outlined,
               label: s.get('number'),
-              value: user.number ?? 'Not provided',
+              value: user.number ?? s.get('not_provided'),
               textColor: textColor,
               subTextColor: subTextColor,
               iconColor: iconColor,
@@ -159,7 +159,7 @@ class _YourAccountScreenState extends State<YourAccountScreen> {
             _buildInfoTile(
               icon: Icons.public_outlined,
               label: s.get('country'),
-              value: user.country ?? 'Not provided',
+              value: user.country ?? s.get('not_provided'),
               textColor: textColor,
               subTextColor: subTextColor,
               iconColor: iconColor,
@@ -167,7 +167,7 @@ class _YourAccountScreenState extends State<YourAccountScreen> {
             _buildInfoTile(
               icon: Icons.location_city_outlined,
               label: s.get('city'),
-              value: user.city ?? 'Not provided',
+              value: user.city ?? s.get('not_provided'),
               textColor: textColor,
               subTextColor: subTextColor,
               iconColor: iconColor,

@@ -88,6 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Semantics(
               label: s.get('your_account'),
+              onTapHint: s.get('tap_to_open_menu'),
               button: true,
               child: _buildAppBarButton(
                 icon: SvgPicture.asset(
@@ -109,6 +110,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             Semantics(
               label: s.get('preferences'),
+              onTapHint: s.get('tap_to_open_menu'),
               button: true,
               child: _buildAppBarButton(
                 icon: Icon(Icons.menu, color: theme.appBarTheme.foregroundColor ?? Colors.black, size: 30),
@@ -137,6 +139,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       MaterialPageRoute(builder: (context) => BuyBooksScreen(isLoggedIn: widget.isLoggedIn)),
                     );
                   },
+                  hint: s.get('tap_to_select'),
                 ),
                 _buildMenuOption(
                   context,
@@ -149,10 +152,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       MaterialPageRoute(builder: (context) => const SellBooksScreen()),
                     );
                   },
+                  hint: s.get('tap_to_select'),
                 ),
                 _buildMenuOption(
                   context,
-                  text: s.get('reviews'),
+                  text: s.get('reviews_lowercase'),
                   assetPath: 'assets/icons/Review.svg',
                   isReversed: true,
                   onTap: () {
@@ -161,6 +165,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       MaterialPageRoute(builder: (context) => const ReviewBooksScreen()),
                     );
                   },
+                  hint: s.get('tap_to_select'),
                 ),
                 _buildMenuOption(
                   context,
@@ -168,6 +173,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   assetPath: 'assets/icons/Review.svg',
                   isReversed: false,
                   onTap: _navigateToAiRecommendations,
+                  hint: s.get('tap_to_select'),
                 ),
               ],
             ),
@@ -191,15 +197,16 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                 _buildDrawerItem(s.get('your_account'), _navigateToYourAccount),
+                 _buildDrawerItem(s.get('your_account'), _navigateToYourAccount, s.get('tap_to_select')),
                  const SizedBox(height: 20),
-                 _buildDrawerItem(s.get('ai_recommendations'), _navigateToAiRecommendations),
+                 _buildDrawerItem(s.get('ai_recommendations'), _navigateToAiRecommendations, s.get('tap_to_select')),
                  const SizedBox(height: 20),
-                 _buildDrawerItem(s.get('faq'), () => Navigator.push(context, MaterialPageRoute(builder: (context) => const FaqScreen()))),
+                 _buildDrawerItem(s.get('faq'), () => Navigator.push(context, MaterialPageRoute(builder: (context) => const FaqScreen())), s.get('tap_to_select')),
                  const Spacer(),
                  Semantics(
                    button: true,
                    label: s.get('logout'),
+                   onTapHint: s.get('tap_to_logout'),
                    child: ListTile(
                       leading: Icon(Icons.logout, color: isDefaultMode ? Colors.white : colorScheme.onSurface),
                       title: Text(s.get('logout'), style: TextStyle(color: isDefaultMode ? Colors.white : colorScheme.onSurface, fontSize: 20)),
@@ -217,11 +224,11 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildDrawerItem(s.get('audio_settings'), () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AudioSettingsScreen()))),
+                _buildDrawerItem(s.get('audio_settings'), () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AudioSettingsScreen())), s.get('tap_to_select')),
                 const SizedBox(height: 20),
-                _buildDrawerItem(s.get('language'), () => Navigator.push(context, MaterialPageRoute(builder: (context) => const LanguageScreen()))),
+                _buildDrawerItem(s.get('language'), () => Navigator.push(context, MaterialPageRoute(builder: (context) => const LanguageScreen())), s.get('tap_to_select')),
                 const SizedBox(height: 20),
-                _buildDrawerItem(s.get('preferences'), () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PreferencesScreen()))),
+                _buildDrawerItem(s.get('preferences'), () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PreferencesScreen())), s.get('tap_to_select')),
               ],
             ),
           ),
@@ -277,7 +284,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildDrawerItem(String title, VoidCallback onTap) {
+  Widget _buildDrawerItem(String title, VoidCallback onTap, String hint) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDefaultMode = theme.scaffoldBackgroundColor == const Color(0xFF00008B);
@@ -285,6 +292,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Semantics(
       button: true,
       label: title,
+      onTapHint: hint,
       child: InkWell(
         onTap: onTap,
         child: Text(
@@ -297,7 +305,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildMenuOption(
     BuildContext context,
-    {required String text, required String assetPath, required bool isReversed, required VoidCallback onTap}
+    {required String text, required String assetPath, required bool isReversed, required VoidCallback onTap, required String hint}
   ) {
     final theme = Theme.of(context);
     final isDefaultMode = theme.scaffoldBackgroundColor == const Color(0xFF00008B);
@@ -337,6 +345,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Semantics(
       button: true,
       label: text,
+      onTapHint: hint,
       child: GestureDetector(
         onTap: onTap,
         child: Container(

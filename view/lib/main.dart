@@ -21,6 +21,7 @@ class _MyAppState extends State<MyApp> {
   ThemeMode _themeMode = ThemeMode.system;
   bool _isHighContrast = false;
   bool _isVoiceFeedbackEnabled = false;
+  double _volume = 0.5;
   Locale _locale = const Locale('en', 'US');
   final FlutterTts _flutterTts = FlutterTts();
 
@@ -35,7 +36,7 @@ class _MyAppState extends State<MyApp> {
   Future<void> _initTts() async {
     await _flutterTts.setLanguage(_locale.toLanguageTag());
     await _flutterTts.setSpeechRate(0.45);
-    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setVolume(_volume);
     await _flutterTts.setPitch(1.0);
   }
 
@@ -46,16 +47,17 @@ class _MyAppState extends State<MyApp> {
       _themeMode = ThemeMode.values[themeIndex];
       _isHighContrast = prefs.getBool('high_contrast') ?? false;
       _isVoiceFeedbackEnabled = prefs.getBool('voice_feedback') ?? false;
+      _volume = prefs.getDouble('volume') ?? 0.5;
       
       String langCode = prefs.getString('language_code') ?? 'en';
       String countryCode = prefs.getString('country_code') ?? 'US';
       _locale = Locale(langCode, countryCode);
     });
     _updateTtsLanguage();
+    await _flutterTts.setVolume(_volume);
   }
 
   Future<void> _updateTtsLanguage() async {
-    // Ważne: setLanguage używa formatu BCP 47 (np. pl-PL)
     String tag = _locale.languageCode == 'pl' ? 'pl-PL' : 'en-US';
     await _flutterTts.setLanguage(tag);
   }
@@ -96,6 +98,13 @@ class _MyAppState extends State<MyApp> {
     if (value) {
       await _flutterTts.speak(_locale.languageCode == 'pl' ? "Informacje głosowe włączone" : "Voice feedback enabled");
     }
+  }
+
+  Future<void> _updateVolume(double value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('volume', value);
+    setState(() => _volume = value);
+    await _flutterTts.setVolume(value);
   }
 
   Future<void> _speak(String text) async {
@@ -213,10 +222,12 @@ class _MyAppState extends State<MyApp> {
       themeMode: _themeMode,
       isHighContrast: _isHighContrast,
       isVoiceFeedbackEnabled: _isVoiceFeedbackEnabled,
+      volume: _volume,
       locale: _locale,
       updateThemeMode: _saveThemeMode,
       updateHighContrast: _toggleHighContrast,
       updateVoiceFeedback: _toggleVoiceFeedback,
+      updateVolume: _updateVolume,
       updateLocale: _changeLanguage,
       speak: _speak,
       child: MaterialApp(
@@ -241,10 +252,12 @@ class ThemeSettings extends InheritedWidget {
   final ThemeMode themeMode;
   final bool isHighContrast;
   final bool isVoiceFeedbackEnabled;
+  final double volume;
   final Locale locale;
   final Function(ThemeMode) updateThemeMode;
   final Function(bool) updateHighContrast;
   final Function(bool) updateVoiceFeedback;
+  final Function(double) updateVolume;
   final Function(Locale) updateLocale;
   final Function(String) speak;
 
@@ -253,10 +266,12 @@ class ThemeSettings extends InheritedWidget {
     required this.themeMode,
     required this.isHighContrast,
     required this.isVoiceFeedbackEnabled,
+    required this.volume,
     required this.locale,
     required this.updateThemeMode,
     required this.updateHighContrast,
     required this.updateVoiceFeedback,
+    required this.updateVolume,
     required this.updateLocale,
     required this.speak,
     required super.child,
@@ -271,6 +286,7 @@ class ThemeSettings extends InheritedWidget {
     return themeMode != oldWidget.themeMode || 
            isHighContrast != oldWidget.isHighContrast ||
            isVoiceFeedbackEnabled != oldWidget.isVoiceFeedbackEnabled ||
+           volume != oldWidget.volume ||
            locale != oldWidget.locale;
   }
 }

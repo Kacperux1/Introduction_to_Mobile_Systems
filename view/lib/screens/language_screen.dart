@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../main.dart';
+import '../l10n_helper.dart';
 
 class LanguageScreen extends StatelessWidget {
   const LanguageScreen({super.key});
@@ -8,8 +9,9 @@ class LanguageScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final themeSettings = ThemeSettings.of(context);
+    final s = S.of(context);
     
-    if (themeSettings == null) return const Scaffold(body: Center(child: Text('Settings not found')));
+    if (themeSettings == null) return Scaffold(body: Center(child: Text(s.get('settings_not_found'))));
 
     final isHighContrast = theme.scaffoldBackgroundColor == const Color(0xFF301934);
     final isDarkMode = theme.scaffoldBackgroundColor == Colors.black;
@@ -29,7 +31,7 @@ class LanguageScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text(themeSettings.locale.languageCode == 'pl' ? 'Język' : 'Language', 
+        title: Text(s.get('language'), 
           style: TextStyle(color: theme.appBarTheme.foregroundColor)),
         backgroundColor: theme.appBarTheme.backgroundColor,
         iconTheme: theme.appBarTheme.iconTheme ?? IconThemeData(color: theme.appBarTheme.foregroundColor),
@@ -44,7 +46,8 @@ class LanguageScreen extends StatelessWidget {
           return Semantics(
             button: true,
             selected: isSelected,
-            label: '${lang['name']}, ${isSelected ? (lang['locale'].languageCode == 'pl' ? 'wybrany' : 'selected') : ''}',
+            label: '${lang['name']}, ${isSelected ? s.get('selected') : ''}',
+            onTapHint: s.get('tap_to_select'),
             child: Card(
               color: isHighContrast ? Colors.black : (isDefaultMode ? Colors.white.withOpacity(0.1) : theme.cardColor),
               margin: const EdgeInsets.symmetric(vertical: 8.0),

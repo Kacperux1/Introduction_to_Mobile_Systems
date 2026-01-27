@@ -9,17 +9,16 @@ class AudioSettingsScreen extends StatefulWidget {
 }
 
 class _AudioSettingsScreenState extends State<AudioSettingsScreen> {
-  double _volume = 0.5;
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final themeSettings = ThemeSettings.of(context);
+    
+    if (themeSettings == null) return const Scaffold(body: Center(child: Text('Settings not found')));
+
     final isHighContrast = theme.scaffoldBackgroundColor == const Color(0xFF301934);
     final isDarkMode = theme.scaffoldBackgroundColor == Colors.black;
     final isDefaultMode = theme.scaffoldBackgroundColor == const Color(0xFF00008B);
-
-    if (themeSettings == null) return const Scaffold(body: Center(child: Text('Settings not found')));
 
     Color getTextColor() {
       if (isHighContrast) return Colors.yellow;
@@ -40,13 +39,13 @@ class _AudioSettingsScreenState extends State<AudioSettingsScreen> {
           _buildSectionHeader('Output Settings', getTextColor()),
           Semantics(
             label: 'Volume control slider',
-            value: '${(_volume * 100).toInt()}%',
+            value: '${(themeSettings.volume * 100).toInt()}%',
             child: ListTile(
               title: Text('Volume', style: TextStyle(color: getTextColor())),
               subtitle: Slider(
-                value: _volume,
-                onChanged: (val) => setState(() => _volume = val),
-                activeColor: isHighContrast ? Colors.yellow : theme.primaryColor,
+                value: themeSettings.volume,
+                onChanged: (val) => themeSettings.updateVolume(val),
+                activeColor: isHighContrast ? Colors.yellow : (isDarkMode || isDefaultMode ? Colors.white : theme.primaryColor),
                 inactiveColor: isHighContrast ? Colors.yellow.withOpacity(0.3) : Colors.grey,
               ),
               leading: Icon(Icons.volume_up, color: getTextColor()),

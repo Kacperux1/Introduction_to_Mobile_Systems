@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../main.dart';
+import '../l10n_helper.dart';
 
 class PreferencesScreen extends StatelessWidget {
   const PreferencesScreen({super.key});
@@ -7,65 +8,92 @@ class PreferencesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeSettings = ThemeSettings.of(context);
+    final s = S.of(context);
 
-    if (themeSettings == null) return const Scaffold(body: Center(child: Text('Settings not found')));
+    if (themeSettings == null) return Scaffold(body: Center(child: Text(s.get('settings_not_found'))));
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Preferences'),
+        title: Text(s.get('preferences')),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          const Text(
-            'Accessibility & Theme',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          Text(
+            s.get('accessibility_theme_title'),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
           
           // High Contrast Switch
-          SwitchListTile(
-            title: const Text('High Contrast Mode'),
-            subtitle: const Text('Enhances visibility with higher contrast colors'),
-            value: themeSettings.isHighContrast,
-            onChanged: (bool value) {
-              themeSettings.updateHighContrast(value);
-            },
-            secondary: const Icon(Icons.contrast),
+          Semantics(
+            container: true,
+            label: s.get('high_contrast_mode'),
+            hint: s.get('tap_to_select'),
+            child: SwitchListTile(
+              title: Text(s.get('high_contrast_mode')),
+              subtitle: Text(s.get('high_contrast_subtitle')),
+              value: themeSettings.isHighContrast,
+              onChanged: (bool value) {
+                themeSettings.updateHighContrast(value);
+              },
+              secondary: const Icon(Icons.contrast),
+            ),
           ),
           
           const Divider(),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8.0),
-            child: Text('Theme Mode', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: Text(s.get('theme_mode'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
           ),
 
           // Theme Mode Radio Buttons
-          RadioListTile<ThemeMode>(
-            title: const Text('Default'),
+          _buildRadioTile(
+            title: s.get('theme_default'),
             value: ThemeMode.system,
             groupValue: themeSettings.themeMode,
-            onChanged: (ThemeMode? value) {
-              if (value != null) themeSettings.updateThemeMode(value);
-            },
+            onChanged: themeSettings.updateThemeMode,
+            s: s,
           ),
-          RadioListTile<ThemeMode>(
-            title: const Text('Light Mode'),
+          _buildRadioTile(
+            title: s.get('theme_light'),
             value: ThemeMode.light,
             groupValue: themeSettings.themeMode,
-            onChanged: (ThemeMode? value) {
-              if (value != null) themeSettings.updateThemeMode(value);
-            },
+            onChanged: themeSettings.updateThemeMode,
+            s: s,
           ),
-          RadioListTile<ThemeMode>(
-            title: const Text('Dark Mode'),
+          _buildRadioTile(
+            title: s.get('theme_dark'),
             value: ThemeMode.dark,
             groupValue: themeSettings.themeMode,
-            onChanged: (ThemeMode? value) {
-              if (value != null) themeSettings.updateThemeMode(value);
-            },
+            onChanged: themeSettings.updateThemeMode,
+            s: s,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildRadioTile({
+    required String title,
+    required ThemeMode value,
+    required ThemeMode groupValue,
+    required ValueChanged<ThemeMode> onChanged,
+    required S s,
+  }) {
+    final bool isSelected = value == groupValue;
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: '$title, ${isSelected ? s.get('selected') : ''}',
+      onTapHint: s.get('tap_to_select'),
+      child: RadioListTile<ThemeMode>(
+        title: Text(title),
+        value: value,
+        groupValue: groupValue,
+        onChanged: (ThemeMode? val) {
+          if (val != null) onChanged(val);
+        },
       ),
     );
   }

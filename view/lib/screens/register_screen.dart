@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import '../l10n_helper.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -20,10 +21,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final String _baseUrl = 'http://10.0.2.2:8080';
 
   Future<void> _register() async {
+    final s = S.of(context);
     if (_loginController.text.isEmpty ||
         _passwordController.text.isEmpty ||
         _emailController.text.isEmpty) {
-      _showErrorSnackBar('Username, password, and email are required.');
+      _showErrorSnackBar(s.get('required_fields_error'));
       return;
     }
 
@@ -46,18 +48,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (response.statusCode == 200) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Registration successful! You can now log in.'),
+            SnackBar(
+              content: Text(s.get('registration_success')),
               backgroundColor: Colors.green,
             ),
           );
           Navigator.of(context).pop();
         }
       } else {
-        _showErrorSnackBar('Registration failed: ${response.body}');
+        _showErrorSnackBar(s.get('registration_failed', args: {'error': response.body}));
       }
     } catch (e) {
-      _showErrorSnackBar('An error occurred: $e');
+      _showErrorSnackBar(s.get('error_occurred', args: {'error': e.toString()}));
     }
   }
 
@@ -77,14 +79,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isHighContrast = theme.scaffoldBackgroundColor == const Color(0xFF301934);
-    final isDarkMode = theme.scaffoldBackgroundColor == Colors.black;
     final isDefaultMode = theme.scaffoldBackgroundColor == const Color(0xFF00008B);
+    final s = S.of(context);
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
-          'Register',
+          s.get('register_title'),
           style: TextStyle(color: theme.appBarTheme.foregroundColor),
         ),
         backgroundColor: theme.appBarTheme.backgroundColor,
@@ -96,16 +98,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildTextField(_loginController, 'Username*', theme),
-              _buildTextField(_passwordController, 'Password*', theme, obscureText: true),
-              _buildTextField(_emailController, 'Email*', theme),
-              _buildTextField(_numberController, 'Number', theme),
-              _buildTextField(_countryController, 'Country', theme),
-              _buildTextField(_cityController, 'City', theme),
+              _buildTextField(_loginController, '${s.get('username')}*', theme),
+              _buildTextField(_passwordController, '${s.get('password')}*', theme, obscureText: true),
+              _buildTextField(_emailController, '${s.get('email')}*', theme),
+              _buildTextField(_numberController, s.get('number'), theme),
+              _buildTextField(_countryController, s.get('country'), theme),
+              _buildTextField(_cityController, s.get('city'), theme),
               const SizedBox(height: 40),
               Semantics(
                 button: true,
-                label: 'Submit registration',
+                label: s.get('submit_registration'),
                 child: ElevatedButton(
                   onPressed: _register,
                   style: ElevatedButton.styleFrom(
@@ -117,9 +119,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       side: isHighContrast ? const BorderSide(color: Colors.yellow, width: 2) : BorderSide.none,
                     ),
                   ),
-                  child: const Text(
-                    'Register',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  child: Text(
+                    s.get('register'),
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),

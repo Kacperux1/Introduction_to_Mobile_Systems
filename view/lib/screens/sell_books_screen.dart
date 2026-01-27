@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../l10n_helper.dart';
 
 class SellBooksScreen extends StatefulWidget {
   const SellBooksScreen({super.key});
@@ -18,12 +19,13 @@ class _SellBooksScreenState extends State<SellBooksScreen> {
   String _selectedCondition = 'Like New';
 
   Future<void> _submitForm() async {
+    final s = S.of(context);
     if (_formKey.currentState!.validate()) {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('jwt_token');
 
       if (token == null) {
-        _showSnackBar('You must be logged in to sell a book.', isError: true);
+        _showSnackBar(s.get('login_required_sell'), isError: true);
         return;
       }
 
@@ -43,10 +45,10 @@ class _SellBooksScreenState extends State<SellBooksScreen> {
       );
 
       if (response.statusCode == 201) {
-        _showSnackBar('Book listed for sale!');
+        _showSnackBar(s.get('book_listed'));
         Navigator.pop(context);
       } else {
-        _showSnackBar('Failed to list book. Error: ${response.body}', isError: true);
+        _showSnackBar(s.get('list_failed', args: {'error': response.body}), isError: true);
       }
     }
   }
@@ -66,11 +68,12 @@ class _SellBooksScreenState extends State<SellBooksScreen> {
     final isHighContrast = theme.scaffoldBackgroundColor == const Color(0xFF301934);
     final isDarkMode = theme.scaffoldBackgroundColor == Colors.black;
     final isDefaultMode = theme.scaffoldBackgroundColor == const Color(0xFF00008B);
+    final s = S.of(context);
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Sell a Book', style: TextStyle(color: theme.appBarTheme.foregroundColor)),
+        title: Text(s.get('sell_book_title'), style: TextStyle(color: theme.appBarTheme.foregroundColor)),
         backgroundColor: isHighContrast ? Colors.black : (isDefaultMode ? Colors.green : theme.appBarTheme.backgroundColor),
         iconTheme: theme.appBarTheme.iconTheme ?? IconThemeData(color: theme.appBarTheme.foregroundColor),
       ),
@@ -81,17 +84,17 @@ class _SellBooksScreenState extends State<SellBooksScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildTextField(_titleController, 'Title', theme),
+              _buildTextField(_titleController, s.get('title'), theme),
               const SizedBox(height: 16.0),
-              _buildTextField(_authorController, 'Author', theme),
+              _buildTextField(_authorController, s.get('author'), theme),
               const SizedBox(height: 16.0),
-              _buildTextField(_priceController, 'Price', theme, keyboardType: TextInputType.number),
+              _buildTextField(_priceController, s.get('price'), theme, keyboardType: TextInputType.number),
               const SizedBox(height: 16.0),
-              _buildConditionDropdown(theme),
+              _buildConditionDropdown(theme, s),
               const SizedBox(height: 32.0),
               Semantics(
                 button: true,
-                label: 'List book for sale',
+                label: s.get('list_for_sale'),
                 child: ElevatedButton(
                   onPressed: _submitForm,
                   style: ElevatedButton.styleFrom(
@@ -103,7 +106,7 @@ class _SellBooksScreenState extends State<SellBooksScreen> {
                       side: isHighContrast ? const BorderSide(color: Colors.yellow, width: 2) : BorderSide.none,
                     ),
                   ),
-                  child: const Text('List for Sale', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  child: Text(s.get('list_for_sale'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                 ),
               ),
             ],
@@ -115,6 +118,7 @@ class _SellBooksScreenState extends State<SellBooksScreen> {
 
   Widget _buildTextField(TextEditingController controller, String label, ThemeData theme, {TextInputType keyboardType = TextInputType.text}) {
     final isHighContrast = theme.scaffoldBackgroundColor == const Color(0xFF301934);
+    final s = S.of(context);
     
     return Semantics(
       label: 'Input field for $label',
@@ -138,7 +142,7 @@ class _SellBooksScreenState extends State<SellBooksScreen> {
         ),
         validator: (value) {
           if (value == null || value.isEmpty) {
-            return 'Please enter a $label';
+            return s.get('enter_field_error', args: {'field': label});
           }
           return null;
         },
@@ -146,7 +150,7 @@ class _SellBooksScreenState extends State<SellBooksScreen> {
     );
   }
 
-  Widget _buildConditionDropdown(ThemeData theme) {
+  Widget _buildConditionDropdown(ThemeData theme, S s) {
     final isHighContrast = theme.scaffoldBackgroundColor == const Color(0xFF301934);
     
     return Semantics(
@@ -155,10 +159,15 @@ class _SellBooksScreenState extends State<SellBooksScreen> {
         value: _selectedCondition,
         dropdownColor: isHighContrast ? Colors.black : Colors.white,
         style: TextStyle(color: isHighContrast ? Colors.yellow : Colors.black),
-        items: ['Like New', 'Very Good', 'Good', 'Acceptable', 'Visibly Used']
-            .map((condition) => DropdownMenuItem(
-                  value: condition, 
-                  child: Text(condition, style: TextStyle(color: isHighContrast ? Colors.yellow : Colors.black))
+        items: [
+          {'key': 'Like New', 'value': s.get('condition_like_new')},
+          {'key': 'Very Good', 'value': s.get('condition_very_good')},
+          {'key': 'Good', 'value': s.get('condition_good')},
+          {'key': 'Acceptable', 'value': s.get('condition_acceptable')},
+          {'key': 'Visibly Used', 'value': s.get('condition_used')},
+        ].map((item) => DropdownMenuItem(
+                  value: item['key'], 
+                  child: Text(item['value']!, style: TextStyle(color: isHighContrast ? Colors.yellow : Colors.black))
                 ))
             .toList(),
         onChanged: (value) {
@@ -167,7 +176,7 @@ class _SellBooksScreenState extends State<SellBooksScreen> {
           });
         },
         decoration: InputDecoration(
-          labelText: 'Condition',
+          labelText: s.get('condition'),
           labelStyle: TextStyle(color: isHighContrast ? Colors.yellow : Colors.grey[700]),
           filled: true,
           fillColor: isHighContrast ? Colors.black : Colors.white,

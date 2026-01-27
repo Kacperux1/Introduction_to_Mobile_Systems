@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:view/models/user_profile.dart';
+import '../l10n_helper.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final String token;
@@ -33,6 +34,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _updateProfile() async {
+    final s = S.of(context);
     try {
       final response = await http.put(
         Uri.parse('http://10.0.2.2:8080/api/me'),
@@ -51,15 +53,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (response.statusCode == 200) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Profile updated successfully!'), backgroundColor: Colors.green),
+            SnackBar(content: Text(s.get('profile_updated')), backgroundColor: Colors.green),
           );
           Navigator.pop(context, true);
         }
       } else {
-        _showErrorSnackBar('Update failed: ${response.body}');
+        _showErrorSnackBar(s.get('update_failed', args: {'error': response.body}));
       }
     } catch (e) {
-      _showErrorSnackBar('An error occurred: $e');
+      _showErrorSnackBar(s.get('error_occurred', args: {'error': e.toString()}));
     }
   }
 
@@ -80,12 +82,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final theme = Theme.of(context);
     final isHighContrast = theme.scaffoldBackgroundColor == const Color(0xFF301934);
     final isDefaultMode = theme.scaffoldBackgroundColor == const Color(0xFF00008B);
-    final isDarkMode = theme.scaffoldBackgroundColor == Colors.black;
+    final s = S.of(context);
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Edit Profile', style: TextStyle(color: theme.appBarTheme.foregroundColor)),
+        title: Text(s.get('edit_profile_title'), style: TextStyle(color: theme.appBarTheme.foregroundColor)),
         backgroundColor: theme.appBarTheme.backgroundColor,
         iconTheme: theme.appBarTheme.iconTheme ?? IconThemeData(color: theme.appBarTheme.foregroundColor),
       ),
@@ -94,14 +96,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildTextField(_emailController, 'Email', theme),
-            _buildTextField(_numberController, 'Number', theme),
-            _buildTextField(_countryController, 'Country', theme),
-            _buildTextField(_cityController, 'City', theme),
+            _buildTextField(_emailController, s.get('email'), theme),
+            _buildTextField(_numberController, s.get('number'), theme),
+            _buildTextField(_countryController, s.get('country'), theme),
+            _buildTextField(_cityController, s.get('city'), theme),
             const SizedBox(height: 40),
             Semantics(
               button: true,
-              label: 'Save profile changes',
+              label: s.get('save_changes'),
               child: ElevatedButton(
                 onPressed: _updateProfile,
                 style: ElevatedButton.styleFrom(
@@ -113,9 +115,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     side: isHighContrast ? const BorderSide(color: Colors.yellow, width: 2) : BorderSide.none,
                   ),
                 ),
-                child: const Text(
-                  'Save Changes',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                child: Text(
+                  s.get('save_changes'),
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
