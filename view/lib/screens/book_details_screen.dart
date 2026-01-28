@@ -27,7 +27,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
   Future<Book> _fetchBookDetails() async {
     final response = await http.get(
-      Uri.parse('http://10.0.2.2:8080/api/books/${widget.bookId}'),
+      Uri.parse('http://localhost:8080/api/books/${widget.bookId}'),
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',
@@ -65,7 +65,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     try {
       final response = await http
           .post(
-            Uri.parse('http://10.0.2.2:8080/api/reviews'),
+            Uri.parse('http://localhost:8080/api/reviews'),
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $token',

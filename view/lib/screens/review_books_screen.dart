@@ -23,7 +23,7 @@ class _ReviewBooksScreenState extends State<ReviewBooksScreen> {
   }
 
   Future<List<Book>> _fetchBooks() async {
-    final response = await http.get(Uri.parse('http://10.0.2.2:8080/api/books'));
+    final response = await http.get(Uri.parse('http://localhost:8080/api/books'));
 
     if (response.statusCode == 200) {
       List<dynamic> body = jsonDecode(response.body);
@@ -143,7 +143,7 @@ class _ReviewBooksScreenState extends State<ReviewBooksScreen> {
     try {
       final response = await http
           .post(
-            Uri.parse('http://10.0.2.2:8080/api/reviews'),
+            Uri.parse('http://localhost:8080/api/reviews'),
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $token',

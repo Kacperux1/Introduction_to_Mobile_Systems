@@ -43,6 +43,11 @@ public class UserService implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with login: " + login));
     }
 
+    public UserPostgres loadUserById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with id: " + id));
+    }
+
     @Transactional
     public void updateUser(String login, UserController.UpdateProfileRequest request) {
         UserPostgres user = loadUserByLogin(login);

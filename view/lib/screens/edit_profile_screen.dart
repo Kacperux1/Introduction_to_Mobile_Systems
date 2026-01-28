@@ -35,7 +35,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _updateProfile() async {
     try {
       final response = await http.put(
-        Uri.parse('http://10.0.2.2:8080/api/me'),
+        Uri.parse('http://localhost:8080/api/me'),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
           'Authorization': 'Bearer ${widget.token}',

@@ -25,3 +25,5 @@ INSERT INTO review (rating, comment, reviewer_name, book_id) VALUES
 (4, 'Very detailed and comprehensive, but can be a bit dense.', 'CodeMaster', (SELECT id from book WHERE title = 'Symfonia C++ Standard')),
 (5, 'A classic for a reason. Sapkowski is a master of fantasy.', 'FantasyFan', (SELECT id from book WHERE title = 'Wiedźmin - Ostatnie życzenie')),
 (3, 'Good, but not as groundbreaking as some say.', 'PragmaticDev', (SELECT id from book WHERE title = 'Clean Code'));
+
+
