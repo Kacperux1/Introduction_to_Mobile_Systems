@@ -17,7 +17,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _countryController = TextEditingController();
   final _cityController = TextEditingController();
 
-  final String _baseUrl = 'http://localhost:8080'; // 10.0.2.2 Android emulator (localhost na komputerze)
+  final String _baseUrl = 'http://10.0.2.2:8080'; // 10.0.2.2 Android emulator (localhost na komputerze)
 
   Future<void> _register() async {
     if (_loginController.text.isEmpty ||

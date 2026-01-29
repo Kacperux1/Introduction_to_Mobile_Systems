@@ -40,7 +40,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
   Future<Book> _fetchBookDetails() async {
     final response = await http.get(
-      Uri.parse('http://localhost:8080/api/books/${widget.bookId}'),
+      Uri.parse('http://10.0.2.2:8080/api/books/${widget.bookId}'),
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',
@@ -95,7 +95,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     try {
       final response = await http
           .post(
-            Uri.parse('http://localhost:8080/api/reviews'),
+            Uri.parse('http://10.0.2.2:8080/api/reviews'),
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $token',
@@ -263,7 +263,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     // Fetch seller info and current user info to get IDs
     try {
       final meResponse = await http.get(
-        Uri.parse('http://localhost:8080/api/me'),
+        Uri.parse('http://10.0.2.2:8080/api/me'),
         headers: {'Authorization': 'Bearer $token'},
       );
       
@@ -282,7 +282,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
         // Since I don't have sellerId in Book model yet, I'll assume we need to fetch it.
         
         final sellerResponse = await http.get(
-          Uri.parse('http://localhost:8080/api/users/${book.sellerLogin}'),
+          Uri.parse('http://10.0.2.2:8080/api/users/${book.sellerLogin}'),
           headers: {'Authorization': 'Bearer $token'},
         );
 

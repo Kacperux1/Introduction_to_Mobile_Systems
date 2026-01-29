@@ -67,7 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (token != null && mounted) {
       try {
         final response = await http.get(
-          Uri.parse('http://localhost:8080/api/me'),
+          Uri.parse('http://10.0.2.2:8080/api/me'),
           headers: {'Authorization': 'Bearer $token'},
         );
         if (response.statusCode == 200) {

@@ -5,8 +5,8 @@ import 'package:stomp_dart_client/stomp_dart_client.dart';
 import '../models/chat_message.dart';
 
 class ChatService {
-  static const String _baseUrl = 'http://localhost:8080';
-  static const String _wsUrl = 'ws://localhost:8080/chat-socket/websocket';
+  static const String _baseUrl = 'http://10.0.2.2:8080';
+  static const String _wsUrl = 'ws://10.0.2.2:8080/chat-socket/websocket';
 
   StompClient? _stompClient;
 
