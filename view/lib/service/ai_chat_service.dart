@@ -14,7 +14,7 @@ class ChatMessage {
 }
 
 class AiChatService {
-  static const String baseUrl = 'http://10.0.2.2:8080/api/external';
+  static const String baseUrl = 'https://mobilki.bieda.it/api/external';
   
   // Cache for translations to avoid unnecessary API calls
   static final Map<String, Map<String, String>> _translationCache = {};

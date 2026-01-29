@@ -18,7 +18,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _countryController = TextEditingController();
   final _cityController = TextEditingController();
 
-  final String _baseUrl = 'http://10.0.2.2:8080';
+  final String _baseUrl = 'https://mobilki.bieda.it';
 
   Future<void> _register() async {
     final s = S.of(context);

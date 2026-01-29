@@ -56,7 +56,7 @@ class _BuyBooksScreenState extends State<BuyBooksScreen> {
   }
 
   Future<List<Book>> _fetchBooks({String query = ''}) async {
-    final uri = Uri.parse('http://10.0.2.2:8080/api/books').replace(queryParameters: {'title': query});
+    final uri = Uri.parse('https://mobilki.bieda.it/api/books').replace(queryParameters: {'title': query});
     final response = await http.get(uri);
 
     if (response.statusCode == 200) {
@@ -104,7 +104,7 @@ class _BuyBooksScreenState extends State<BuyBooksScreen> {
   Future<void> _cacheUrlOnServer(int bookId, String imageUrl) async {
     try {
       await http.patch(
-        Uri.parse('http://10.0.2.2:8080/api/books/$bookId/image'),
+        Uri.parse('https://mobilki.bieda.it/api/books/$bookId/image'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'imageUrl': imageUrl}),
       );

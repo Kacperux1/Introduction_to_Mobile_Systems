@@ -34,7 +34,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
     // or we can fetch all messages and group them.
     // Let's assume we have an endpoint /api/messages/users
     final response = await http.get(
-      Uri.parse('http://10.0.2.2:8080/api/messages/users'),
+      Uri.parse('https://mobilki.bieda.it/api/messages/users'),
       headers: {'Authorization': 'Bearer ${widget.authToken}'},
     );
 

@@ -1,6 +1,6 @@
 -- Clear existing data to ensure a clean start.
 TRUNCATE TABLE user_postgres RESTART IDENTITY CASCADE;
-TRUNCATE TABLE book RESTART IDENTITY CASCADE;
+TRUNCATE TABLE offer RESTART IDENTITY CASCADE;
 TRUNCATE TABLE review RESTART IDENTITY CASCADE;
 
 -- Insert Users (Sellers)
@@ -9,8 +9,9 @@ INSERT INTO user_postgres (login, password, email, number, country, city) VALUES
 ('zofia_reads', '$2a$10$i/5d9FOP/28rUd1aDmNC0.uq8qJ8a/pXENzDPLsXZbpSwynpi8.KG', 'zofia.nowak@example.com', '602304405', 'Poland', 'Krakow'),
 ('piotr_seller', '$2a$10$i/5d9FOP/28rUd1aDmNC0.uq8qJ8a/pXENzDPLsXZbpSwynpi8.KG', 'piotr.wisniewski@example.com', '703506607', 'Poland', 'Lodz');
 
--- Insert Book Offers (Empty image_url triggers dynamic fetch in the app)
-INSERT INTO book (title, author, book_condition, price, image_url, seller_id) VALUES
+-- Insert Book Offers (now into offer table, then book table for ID linking)
+-- Step 1: Insert into offer and get IDs (PostgreSQL syntax)
+INSERT INTO offer (title, author, book_condition, price, image_url, seller_id) VALUES
 ('Mechanika techniczna', 'Władysław Siuta', 'Visibly Used', 70.00, '', (SELECT id from user_postgres WHERE login = 'janek_bookworm')),
 ('Symfonia C++ Standard', 'Jerzy Grębosz', 'Excellent', 100.00, '', (SELECT id from user_postgres WHERE login = 'janek_bookworm')),
 ('Linux Biblia', 'Christopher Negus', 'Visibly Used', 120.00, '', (SELECT id from user_postgres WHERE login = 'zofia_reads')),
@@ -30,14 +31,17 @@ INSERT INTO book (title, author, book_condition, price, image_url, seller_id) VA
 ('Maly Ksiaze', 'Antoine de Saint-Exupéry', 'Like New', 20.00, '', (SELECT id from user_postgres WHERE login = 'janek_bookworm')),
 ('Design Patterns', 'Erich Gamma, Richard Helm, Ralph Johnson, John Vlissides', 'Good', 200.00, '', (SELECT id from user_postgres WHERE login = 'piotr_seller'));
 
--- Insert Reviews for Books
-INSERT INTO review (rating, comment, reviewer_name, book_id) VALUES
-(5, 'Excellent book, a must-read for any C++ enthusiast!', 'User123', (SELECT id from book WHERE title = 'Symfonia C++ Standard')),
-(4, 'Very detailed and comprehensive, but can be a bit dense.', 'CodeMaster', (SELECT id from book WHERE title = 'Symfonia C++ Standard')),
-(5, 'A classic for a reason. Sapkowski is a master of fantasy.', 'FantasyFan', (SELECT id from book WHERE title = 'Wiedźmin - Ostatnie życzenie')),
-(3, 'Good, but not as groundbreaking as some say.', 'PragmaticDev', (SELECT id from book WHERE title = 'Clean Code')),
-(5, 'Terrifyingly relevant even today.', 'Reader99', (SELECT id from book WHERE title = '1984')),
-(5, 'The foundation of modern Java programming.', 'JavaGuru', (SELECT id from book WHERE title = 'Effective Java')),
-(4, 'A bit philosophical but very insightful.', 'Thinker', (SELECT id from book WHERE title = 'Thinking, Fast and Slow')),
-(5, 'Magic! Loved it as a child and still do.', 'PotterHead', (SELECT id from book WHERE title = 'Harry Potter i Kamień Filozoficzny')),
-(4, 'Deeply psychological and moving.', 'LiteratureLover', (SELECT id from book WHERE title = 'Zbrodnia i kara'));
+-- Insert into book table to link with offer IDs, providing default value for is_sold
+INSERT INTO book (id, is_sold) SELECT id, false FROM offer;
+
+-- Insert Reviews for Books (linked to offer_id)
+INSERT INTO review (rating, comment, reviewer_name, offer_id) VALUES
+(5, 'Excellent book, a must-read for any C++ enthusiast!', 'User123', (SELECT id from offer WHERE title = 'Symfonia C++ Standard')),
+(4, 'Very detailed and comprehensive, but can be a bit dense.', 'CodeMaster', (SELECT id from offer WHERE title = 'Symfonia C++ Standard')),
+(5, 'A classic for a reason. Sapkowski is a master of fantasy.', 'FantasyFan', (SELECT id from offer WHERE title = 'Wiedźmin - Ostatnie życzenie')),
+(3, 'Good, but not as groundbreaking as some say.', 'PragmaticDev', (SELECT id from offer WHERE title = 'Clean Code')),
+(5, 'Terrifyingly relevant even today.', 'Reader99', (SELECT id from offer WHERE title = '1984')),
+(5, 'The foundation of modern Java programming.', 'JavaGuru', (SELECT id from offer WHERE title = 'Effective Java')),
+(4, 'A bit philosophical but very insightful.', 'Thinker', (SELECT id from offer WHERE title = 'Thinking, Fast and Slow')),
+(5, 'Magic! Loved it as a child and still do.', 'PotterHead', (SELECT id from offer WHERE title = 'Harry Potter i Kamień Filozoficzny')),
+(4, 'Deeply psychological and moving.', 'LiteratureLover', (SELECT id from offer WHERE title = 'Zbrodnia i kara'));

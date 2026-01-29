@@ -26,7 +26,7 @@ public class ReviewController {
 
     @GetMapping
     public List<Review> getReviews(@RequestParam Long bookId) {
-        return reviewService.getReviewsForBook(bookId);
+        return reviewService.getReviewsForOffer(bookId);
     }
 
     public record CreateReviewRequest(Long bookId, int rating, String comment) {}

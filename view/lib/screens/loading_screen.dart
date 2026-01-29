@@ -23,7 +23,7 @@ class _LoadingScreenState extends State<LoadingScreen>
   late final AnimationController _logoBlinkController;
   late final AnimationController _dotsController;
 
-  final String _baseUrl = 'http://10.0.2.2:8080'; // 10.0.2.2 Android emulator
+  final String _baseUrl = 'https://mobilki.bieda.it'; // 10.0.2.2 Android emulator
 
   @override
   void initState() {

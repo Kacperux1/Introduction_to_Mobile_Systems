@@ -12,6 +12,7 @@ import 'language_screen.dart';
 import 'preferences_screen.dart';
 import 'ai_recommendation_screen.dart';
 import 'chat_list_screen.dart';
+import 'history_screen.dart';
 import '../l10n_helper.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -67,7 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (token != null && mounted) {
       try {
         final response = await http.get(
-          Uri.parse('http://10.0.2.2:8080/api/me'),
+          Uri.parse('https://mobilki.bieda.it/api/me'),
           headers: {'Authorization': 'Bearer $token'},
         );
         if (response.statusCode == 200) {
@@ -97,6 +98,15 @@ class _HomeScreenState extends State<HomeScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => AiRecommendationScreen(authToken: token)),
+      );
+    }
+  }
+
+  void _navigateToHistory() {
+    if (widget.isLoggedIn) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const HistoryScreen()),
       );
     }
   }
@@ -234,6 +244,8 @@ class _HomeScreenState extends State<HomeScreen> {
                  _buildDrawerItem(s.get('chats'), _navigateToChats, s.get('tap_to_select')),
                  const SizedBox(height: 20),
                  _buildDrawerItem(s.get('ai_recommendations'), _navigateToAiRecommendations, s.get('tap_to_select')),
+                 const SizedBox(height: 20),
+                 _buildDrawerItem(s.get('history_title'), _navigateToHistory, s.get('tap_to_select')),
                  const SizedBox(height: 20),
                  _buildDrawerItem(s.get('faq'), () => Navigator.push(context, MaterialPageRoute(builder: (context) => const FaqScreen())), s.get('tap_to_select')),
                  const Spacer(),

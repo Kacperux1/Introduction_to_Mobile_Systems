@@ -12,14 +12,16 @@ import java.util.Optional;
 @Repository
 public interface BookRepository extends JpaRepository<Book, Long> {
 
-    @Override
-    @Query("SELECT DISTINCT b FROM Book b LEFT JOIN FETCH b.reviews")
-    List<Book> findAll();
+    @Query("SELECT DISTINCT b FROM Book b LEFT JOIN FETCH b.reviews WHERE b.isSold = false AND b.pendingBuyer IS NULL")
+    List<Book> findAllAvailable();
 
-    @Query("SELECT DISTINCT b FROM Book b LEFT JOIN FETCH b.reviews WHERE lower(b.title) LIKE lower(concat('%', :title, '%'))")
+    @Query("SELECT DISTINCT b FROM Book b LEFT JOIN FETCH b.reviews WHERE b.isSold = false AND b.pendingBuyer IS NULL AND lower(b.title) LIKE lower(concat('%', :title, '%'))")
     List<Book> findByTitleContainingIgnoreCase(@Param("title") String title);
 
     @Override
     @Query("SELECT b FROM Book b LEFT JOIN FETCH b.reviews WHERE b.id = :id")
     Optional<Book> findById(@Param("id") Long id);
+
+    @Query("SELECT b FROM Book b WHERE b.seller.login = :login AND b.pendingBuyer IS NOT NULL AND b.isSold = false")
+    List<Book> findPendingSales(@Param("login") String login);
 }

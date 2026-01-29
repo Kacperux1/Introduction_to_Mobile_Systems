@@ -1,7 +1,7 @@
 package finlandia40.review.model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import finlandia40.book.model.Book;
+import finlandia40.book.model.Offer;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -27,14 +27,14 @@ public class Review {
     private String reviewerName;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "book_id", nullable = false)
+    @JoinColumn(name = "offer_id", nullable = false)
     @JsonBackReference
-    private Book book;
+    private Offer offer;
 
-    public Review(int rating, String comment, String reviewerName, Book book) {
+    public Review(int rating, String comment, String reviewerName, Offer offer) {
         this.rating = rating;
         this.comment = comment;
         this.reviewerName = reviewerName;
-        this.book = book;
+        this.offer = offer;
     }
 }

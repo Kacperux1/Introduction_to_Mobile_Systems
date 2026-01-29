@@ -33,6 +33,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   String? _currentTranslatedTitle;
   String? _currentImageUrl;
   final AiChatService _aiService = AiChatService();
+  bool _isBuying = false;
 
   @override
   void initState() {
@@ -44,7 +45,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
   Future<Book> _fetchBookDetails() async {
     final response = await http.get(
-      Uri.parse('http://10.0.2.2:8080/api/books/${widget.bookId}'),
+      Uri.parse('https://mobilki.bieda.it/api/books/${widget.bookId}'),
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',
@@ -82,6 +83,57 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     });
   }
 
+  Future<void> _buyBook(Book book, S s) async {
+    if (!widget.isLoggedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(s.get('login_required_buy'))),
+      );
+      return;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token');
+
+    setState(() {
+      _isBuying = true;
+    });
+
+    try {
+      final response = await http.post(
+        Uri.parse('https://mobilki.bieda.it/api/books/${book.id}/buy'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(s.get('purchase_success'))),
+        );
+        Navigator.pop(context, true); // Return true to indicate book was bought and list should refresh
+      } else {
+        final error = jsonDecode(response.body)['message'] ?? response.body;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(s.get('purchase_failed', args: {'error': error}))),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(s.get('error_occurred', args: {'error': e.toString()}))),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isBuying = false;
+        });
+      }
+    }
+  }
+
   Future<bool> _submitReview(int bookId, int rating, String comment, S s) async {
     if (!widget.isLoggedIn) {
       if (mounted) {
@@ -99,7 +151,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     try {
       final response = await http
           .post(
-            Uri.parse('http://10.0.2.2:8080/api/reviews'),
+            Uri.parse('https://mobilki.bieda.it/api/reviews'),
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $token',
@@ -264,10 +316,9 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
     if (token == null) return;
 
-    // Fetch seller info and current user info to get IDs
     try {
       final meResponse = await http.get(
-        Uri.parse('http://10.0.2.2:8080/api/me'),
+        Uri.parse('https://mobilki.bieda.it/api/me'),
         headers: {'Authorization': 'Bearer $token'},
       );
       
@@ -275,18 +326,8 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
         final meData = jsonDecode(meResponse.body);
         final currentUserId = meData['id'];
 
-        // We need seller's ID. Assuming we might need to fetch it or it's in the book object.
-        // For now, let's assume we need to fetch seller by login or it's already there if we modify backend.
-        // Let's assume we have sellerId in Book model now.
-        
-        // If sellerId is not in book, we might need another endpoint.
-        // Let's assume the backend provides it or we add it.
-        
-        // For this implementation, I'll search if I can get sellerId.
-        // Since I don't have sellerId in Book model yet, I'll assume we need to fetch it.
-        
         final sellerResponse = await http.get(
-          Uri.parse('http://10.0.2.2:8080/api/users/${book.sellerLogin}'),
+          Uri.parse('https://mobilki.bieda.it/api/users/${book.sellerLogin}'),
           headers: {'Authorization': 'Bearer $token'},
         );
 
@@ -463,12 +504,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             Semantics(
               button: true,
               child: ElevatedButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                        content: Text(s.get('purchase_not_implemented'))),
-                  );
-                },
+                onPressed: _isBuying ? null : () => _buyBook(book, s),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: isHighContrast ? Colors.black : Colors.green,
                   padding: const EdgeInsets.symmetric(vertical: 16.0),
@@ -476,8 +512,10 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                       borderRadius: BorderRadius.circular(30.0),
                       side: isHighContrast ? const BorderSide(color: Colors.yellow, width: 2) : BorderSide.none),
                 ),
-                child: Text(s.get('buy_now'),
-                    style: TextStyle(fontSize: 20, color: isHighContrast ? Colors.yellow : Colors.white)),
+                child: _isBuying 
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : Text(s.get('buy_now'),
+                      style: TextStyle(fontSize: 20, color: isHighContrast ? Colors.yellow : Colors.white)),
               ),
             ),
           ],

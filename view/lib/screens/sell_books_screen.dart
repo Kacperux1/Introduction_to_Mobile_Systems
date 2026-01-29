@@ -43,7 +43,7 @@ class _SellBooksScreenState extends State<SellBooksScreen> {
       );
 
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:8080/api/books'),
+        Uri.parse('https://mobilki.bieda.it/api/books'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',

@@ -28,6 +28,7 @@ class Book {
   final String imageUrl;
   final String? sellerLogin;
   final String? sellerEmail;
+  final String? pendingBuyerLogin;
   final List<Review> reviews;
 
   Book({
@@ -40,6 +41,7 @@ class Book {
     required this.imageUrl,
     this.sellerLogin,
     this.sellerEmail,
+    this.pendingBuyerLogin,
     required this.reviews,
   });
 
@@ -57,6 +59,7 @@ class Book {
       imageUrl: json['imageUrl'] ?? '',
       sellerLogin: json['sellerLogin'],
       sellerEmail: json['sellerEmail'],
+      pendingBuyerLogin: json['pendingBuyerLogin'],
       reviews: reviews,
     );
   }
