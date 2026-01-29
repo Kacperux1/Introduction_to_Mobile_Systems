@@ -8,6 +8,7 @@ import '../models/book.dart';
 import '../l10n_helper.dart';
 import '../main.dart';
 import '../service/ai_chat_service.dart';
+import 'chat_screen.dart';
 
 class BookDetailsScreen extends StatefulWidget {
   final int bookId;
@@ -250,6 +251,73 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     }
   }
 
+  Future<void> _startChat(Book book, S s) async {
+    if (!widget.isLoggedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(s.get('login_required_chat'))),
+      );
+      return;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token');
+
+    if (token == null) return;
+
+    // Fetch seller info and current user info to get IDs
+    try {
+      final meResponse = await http.get(
+        Uri.parse('http://10.0.2.2:8080/api/me'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      
+      if (meResponse.statusCode == 200) {
+        final meData = jsonDecode(meResponse.body);
+        final currentUserId = meData['id'];
+
+        // We need seller's ID. Assuming we might need to fetch it or it's in the book object.
+        // For now, let's assume we need to fetch seller by login or it's already there if we modify backend.
+        // Let's assume we have sellerId in Book model now.
+        
+        // If sellerId is not in book, we might need another endpoint.
+        // Let's assume the backend provides it or we add it.
+        
+        // For this implementation, I'll search if I can get sellerId.
+        // Since I don't have sellerId in Book model yet, I'll assume we need to fetch it.
+        
+        final sellerResponse = await http.get(
+          Uri.parse('http://10.0.2.2:8080/api/users/${book.sellerLogin}'),
+          headers: {'Authorization': 'Bearer $token'},
+        );
+
+        if (sellerResponse.statusCode == 200) {
+          final sellerData = jsonDecode(sellerResponse.body);
+          final sellerId = sellerData['id'];
+
+          if (mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ChatScreen(
+                  receiverId: sellerId,
+                  receiverName: book.sellerLogin!,
+                  authToken: token,
+                  currentUserId: currentUserId,
+                ),
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error starting chat: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -450,13 +518,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             subtitle: Text(book.sellerEmail ?? s.get('email_not_available'), 
               style: TextStyle(color: cardTextColor.withOpacity(0.7))),
             trailing: ElevatedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                      content: Text(
-                          s.get('chat_not_implemented'))),
-                );
-              },
+              onPressed: () => _startChat(book, s),
               style: ElevatedButton.styleFrom(
                 backgroundColor: isHighContrast ? Colors.black : Colors.blue,
                 shape: RoundedRectangleBorder(

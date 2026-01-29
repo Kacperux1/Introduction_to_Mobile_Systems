@@ -11,7 +11,10 @@ import 'audio_settings_screen.dart';
 import 'language_screen.dart';
 import 'preferences_screen.dart';
 import 'ai_recommendation_screen.dart';
+import 'chat_list_screen.dart';
 import '../l10n_helper.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class HomeScreen extends StatefulWidget {
   final bool isLoggedIn;
@@ -55,6 +58,35 @@ class _HomeScreenState extends State<HomeScreen> {
         context,
         MaterialPageRoute(builder: (context) => YourAccountScreen(token: token)),
       );
+    }
+  }
+
+  void _navigateToChats() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token');
+    if (token != null && mounted) {
+      try {
+        final response = await http.get(
+          Uri.parse('http://10.0.2.2:8080/api/me'),
+          headers: {'Authorization': 'Bearer $token'},
+        );
+        if (response.statusCode == 200) {
+          final userData = jsonDecode(response.body);
+          if (mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ChatListScreen(
+                  authToken: token,
+                  currentUserId: userData['id'],
+                ),
+              ),
+            );
+          }
+        }
+      } catch (e) {
+         print("Error navigating to chats: $e");
+      }
     }
   }
 
@@ -198,6 +230,8 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                  _buildDrawerItem(s.get('your_account'), _navigateToYourAccount, s.get('tap_to_select')),
+                 const SizedBox(height: 20),
+                 _buildDrawerItem(s.get('chats'), _navigateToChats, s.get('tap_to_select')),
                  const SizedBox(height: 20),
                  _buildDrawerItem(s.get('ai_recommendations'), _navigateToAiRecommendations, s.get('tap_to_select')),
                  const SizedBox(height: 20),

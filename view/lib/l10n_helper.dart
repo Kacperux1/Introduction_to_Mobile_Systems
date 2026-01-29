@@ -110,6 +110,9 @@ class S {
       'failed_load_details': 'Failed to load book details',
       'email_not_available': 'Email not available',
       'book_cover_label': 'Book cover image',
+      'chats': 'Chats',
+      'no_chats': 'No active chats',
+      'login_required_chat': 'You must be logged in to start a chat',
       // Accessibility strings
       'selected': 'selected',
       'tap_to_open_menu': 'Double tap to open menu',
@@ -233,6 +236,9 @@ class S {
       'failed_load_details': 'Nie udało się załadować szczegółów książki',
       'email_not_available': 'Email niedostępny',
       'book_cover_label': 'Okładka książki',
+      'chats': 'Czaty',
+      'no_chats': 'Brak aktywnych czatów',
+      'login_required_chat': 'Musisz być zalogowany, aby rozpocząć czat',
       // Accessibility strings
       'selected': 'wybrany',
       'tap_to_open_menu': 'Dotknij dwukrotnie, aby otworzyć menu',
@@ -259,7 +265,10 @@ class S {
   };
 
   String get(String key, {Map<String, String>? args}) {
-    String text = _translations[locale.languageCode]?[key] ?? _translations['en']![key]!;
+    String? translation = _translations[locale.languageCode]?[key] ?? _translations['en']?[key];
+    if (translation == null) return key; // Safety return
+    
+    String text = translation;
     if (args != null) {
       args.forEach((k, v) {
         text = text.replaceAll('{$k}', v);
