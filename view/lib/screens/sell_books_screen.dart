@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../l10n_helper.dart';
+import '../service/book_info_service.dart';
 
 class SellBooksScreen extends StatefulWidget {
   const SellBooksScreen({super.key});
@@ -17,17 +18,29 @@ class _SellBooksScreenState extends State<SellBooksScreen> {
   final _authorController = TextEditingController();
   final _priceController = TextEditingController();
   String _selectedCondition = 'Like New';
+  final BookInfoService _bookInfoService = BookInfoService();
+  bool _isSubmitting = false;
 
   Future<void> _submitForm() async {
     final s = S.of(context);
     if (_formKey.currentState!.validate()) {
+      setState(() => _isSubmitting = true);
+      
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('jwt_token');
 
       if (token == null) {
         _showSnackBar(s.get('login_required_sell'), isError: true);
+        setState(() => _isSubmitting = false);
         return;
       }
+
+      // Automatyczne pobieranie okładki z wykorzystaniem AI do normalizacji
+      final String imageUrl = await _bookInfoService.getCoverUrl(
+        _titleController.text, 
+        _authorController.text,
+        token,
+      );
 
       final response = await http.post(
         Uri.parse('http://10.0.2.2:8080/api/books'),
@@ -40,9 +53,11 @@ class _SellBooksScreenState extends State<SellBooksScreen> {
           'author': _authorController.text,
           'condition': _selectedCondition,
           'price': double.tryParse(_priceController.text) ?? 0.0,
-          'imageUrl': 'https://images.pexels.com/photos/1290141/pexels-photo-1290141.jpeg',
+          'imageUrl': imageUrl,
         }),
       );
+
+      setState(() => _isSubmitting = false);
 
       if (response.statusCode == 201) {
         _showSnackBar(s.get('book_listed'));
@@ -54,12 +69,14 @@ class _SellBooksScreenState extends State<SellBooksScreen> {
   }
 
   void _showSnackBar(String message, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Theme.of(context).colorScheme.error : Colors.green,
-      ),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: isError ? Theme.of(context).colorScheme.error : Colors.green,
+        ),
+      );
+    }
   }
 
   @override
@@ -96,7 +113,7 @@ class _SellBooksScreenState extends State<SellBooksScreen> {
                 button: true,
                 label: s.get('list_for_sale'),
                 child: ElevatedButton(
-                  onPressed: _submitForm,
+                  onPressed: _isSubmitting ? null : _submitForm,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: isHighContrast ? Colors.black : (isDefaultMode ? Colors.green : theme.colorScheme.secondaryContainer),
                     foregroundColor: isHighContrast ? Colors.yellow : Colors.white,
@@ -106,7 +123,9 @@ class _SellBooksScreenState extends State<SellBooksScreen> {
                       side: isHighContrast ? const BorderSide(color: Colors.yellow, width: 2) : BorderSide.none,
                     ),
                   ),
-                  child: Text(s.get('list_for_sale'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  child: _isSubmitting 
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : Text(s.get('list_for_sale'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                 ),
               ),
             ],
@@ -125,12 +144,12 @@ class _SellBooksScreenState extends State<SellBooksScreen> {
       child: TextFormField(
         controller: controller,
         keyboardType: keyboardType,
-        style: TextStyle(color: isHighContrast ? Colors.yellow : Colors.black),
+        style: TextStyle(color: isHighContrast ? Colors.yellow : (theme.brightness == Brightness.dark ? Colors.white : Colors.black)),
         decoration: InputDecoration(
           labelText: label,
           labelStyle: TextStyle(color: isHighContrast ? Colors.yellow : Colors.grey[700]),
           filled: true,
-          fillColor: isHighContrast ? Colors.black : Colors.white,
+          fillColor: isHighContrast ? Colors.black : (theme.brightness == Brightness.dark ? Colors.white.withOpacity(0.1) : Colors.white),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10.0),
             borderSide: isHighContrast ? const BorderSide(color: Colors.yellow, width: 2) : BorderSide.none,
@@ -157,8 +176,8 @@ class _SellBooksScreenState extends State<SellBooksScreen> {
       label: 'Select book condition',
       child: DropdownButtonFormField<String>(
         value: _selectedCondition,
-        dropdownColor: isHighContrast ? Colors.black : Colors.white,
-        style: TextStyle(color: isHighContrast ? Colors.yellow : Colors.black),
+        dropdownColor: isHighContrast ? Colors.black : (theme.brightness == Brightness.dark ? Colors.grey[900] : Colors.white),
+        style: TextStyle(color: isHighContrast ? Colors.yellow : (theme.brightness == Brightness.dark ? Colors.white : Colors.black)),
         items: [
           {'key': 'Like New', 'value': s.get('condition_like_new')},
           {'key': 'Very Good', 'value': s.get('condition_very_good')},
@@ -167,7 +186,7 @@ class _SellBooksScreenState extends State<SellBooksScreen> {
           {'key': 'Visibly Used', 'value': s.get('condition_used')},
         ].map((item) => DropdownMenuItem(
                   value: item['key'], 
-                  child: Text(item['value']!, style: TextStyle(color: isHighContrast ? Colors.yellow : Colors.black))
+                  child: Text(item['value']!, style: TextStyle(color: isHighContrast ? Colors.yellow : (theme.brightness == Brightness.dark ? Colors.white : Colors.black)))
                 ))
             .toList(),
         onChanged: (value) {
@@ -179,7 +198,7 @@ class _SellBooksScreenState extends State<SellBooksScreen> {
           labelText: s.get('condition'),
           labelStyle: TextStyle(color: isHighContrast ? Colors.yellow : Colors.grey[700]),
           filled: true,
-          fillColor: isHighContrast ? Colors.black : Colors.white,
+          fillColor: isHighContrast ? Colors.black : (theme.brightness == Brightness.dark ? Colors.white.withOpacity(0.1) : Colors.white),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10.0),
             borderSide: isHighContrast ? const BorderSide(color: Colors.yellow, width: 2) : BorderSide.none,

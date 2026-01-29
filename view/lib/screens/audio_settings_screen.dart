@@ -62,7 +62,7 @@ class _AudioSettingsScreenState extends State<AudioSettingsScreen> {
               value: themeSettings.isVoiceFeedbackEnabled,
               onChanged: (val) => themeSettings.updateVoiceFeedback(val),
               secondary: Icon(Icons.record_voice_over, color: getTextColor()),
-              activeColor: isHighContrast ? Colors.yellow : null,
+              activeThumbColor: isHighContrast ? Colors.yellow : null,
             ),
           ),
         ],

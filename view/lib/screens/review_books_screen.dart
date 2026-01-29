@@ -8,6 +8,7 @@ import '../models/book.dart';
 import '../l10n_helper.dart';
 import '../main.dart';
 import '../service/ai_chat_service.dart';
+import '../service/book_info_service.dart';
 
 class ReviewBooksScreen extends StatefulWidget {
   const ReviewBooksScreen({super.key});
@@ -19,7 +20,11 @@ class ReviewBooksScreen extends StatefulWidget {
 class _ReviewBooksScreenState extends State<ReviewBooksScreen> {
   late Future<List<Book>> _booksFuture;
   final AiChatService _aiService = AiChatService();
+  final BookInfoService _bookInfoService = BookInfoService();
   final Map<int, String> _translatedTitles = {};
+  final Map<int, String> _dynamicCovers = {};
+
+  final String _safeFallback = 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?q=80&w=500&auto=format&fit=crop';
 
   @override
   void initState() {
@@ -33,19 +38,20 @@ class _ReviewBooksScreenState extends State<ReviewBooksScreen> {
     if (response.statusCode == 200) {
       List<dynamic> body = jsonDecode(response.body);
       final books = body.map((dynamic item) => Book.fromJson(item)).toList();
-      _translateTitles(books);
+      _processBooks(books);
       return books;
     } else {
       throw Exception('Failed to load books');
     }
   }
 
-  Future<void> _translateTitles(List<Book> books) async {
+  Future<void> _processBooks(List<Book> books) async {
     final s = S.of(context);
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token');
     
     for (var book in books) {
+      // 1. Translate titles
       _aiService.translateTitle(book.title, s.locale.languageCode, token).then((translated) {
         if (mounted && translated != book.title) {
           setState(() {
@@ -53,7 +59,24 @@ class _ReviewBooksScreenState extends State<ReviewBooksScreen> {
           });
         }
       });
+
+      // 2. Dynamic cover replacement
+      if (book.imageUrl.contains('pexels.com') || book.imageUrl.contains('via.placeholder.com')) {
+        _bookInfoService.getCoverUrl(book.title, book.author, token).then((newUrl) {
+          if (mounted) {
+            setState(() {
+              _dynamicCovers[book.id] = newUrl;
+            });
+          }
+        });
+      }
     }
+  }
+
+  String _getEffectiveUrl(Book book) {
+    String url = _dynamicCovers[book.id] ?? book.imageUrl;
+    if (url.contains('via.placeholder.com')) return _safeFallback;
+    return url;
   }
 
   Future<void> _showReviewDialog(Book book, ThemeData theme, S s) async {
@@ -270,6 +293,7 @@ class _ReviewBooksScreenState extends State<ReviewBooksScreen> {
 
     Color textColor = (isDarkMode || isDefaultMode) ? Colors.white : (isHighContrast ? Colors.yellow : Colors.black);
     final displayTitle = _translatedTitles[book.id] ?? book.title;
+    final displayImageUrl = _getEffectiveUrl(book);
 
     final String bookDescription = s.get('book_semantics', args: {
         'title': displayTitle,
@@ -296,7 +320,7 @@ class _ReviewBooksScreenState extends State<ReviewBooksScreen> {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(10.0),
                   child: CachedNetworkImage(
-                    imageUrl: book.imageUrl,
+                    imageUrl: displayImageUrl,
                     width: 80,
                     height: 120,
                     fit: BoxFit.cover,
