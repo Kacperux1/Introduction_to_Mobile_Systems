@@ -20,6 +20,7 @@ class Review {
 
 class Book {
   final int id;
+  final String? openLibraryKey;
   final String title;
   final String author;
   final String condition;
@@ -31,6 +32,7 @@ class Book {
 
   Book({
     required this.id,
+    this.openLibraryKey,
     required this.title,
     required this.author,
     required this.condition,
@@ -47,6 +49,7 @@ class Book {
 
     return Book(
       id: json['id'] ?? 0,
+      openLibraryKey: json['openLibraryKey'],
       title: json['title'] ?? 'No Title',
       author: json['author'] ?? 'No Author',
       condition: json['condition'] ?? 'N/A',

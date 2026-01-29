@@ -13,7 +13,7 @@ import java.time.Instant;
 import java.util.Date;
 
 @Service
-class JwtService {
+public class JwtService {
 
 
     private final SecretKey secretKey;

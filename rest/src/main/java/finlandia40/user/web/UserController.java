@@ -20,7 +20,13 @@ public class UserController {
     public UserProfileResponse getProfile(Authentication authentication) {
         String login = authentication.getName();
         UserPostgres user = userService.loadUserByLogin(login);
-        return new UserProfileResponse(user.getLogin(), user.getEmail(), user.getNumber(), user.getCountry(), user.getCity());
+        return new UserProfileResponse(user.getId(), user.getLogin(), user.getEmail(), user.getNumber(), user.getCountry(), user.getCity());
+    }
+
+    @GetMapping("/users/{login}")
+    public UserProfileResponse getUserByLogin(@PathVariable String login) {
+        UserPostgres user = userService.loadUserByLogin(login);
+        return new UserProfileResponse(user.getId(), user.getLogin(), user.getEmail(), user.getNumber(), user.getCountry(), user.getCity());
     }
 
     @PutMapping("/me")
@@ -30,6 +36,6 @@ public class UserController {
         return ResponseEntity.ok().build();
     }
 
-    public record UserProfileResponse(String login, String email, String number, String country, String city) {}
+    public record UserProfileResponse(Long id, String login, String email, String number, String country, String city) {}
     public record UpdateProfileRequest(String email, String number, String country, String city) {}
 }

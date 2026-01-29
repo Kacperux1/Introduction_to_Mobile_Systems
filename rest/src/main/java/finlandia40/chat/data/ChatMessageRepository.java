@@ -12,4 +12,7 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
             UserPostgres firstUser1, UserPostgres secondUser1,
             UserPostgres firstUser2, UserPostgres secondUser2);
 
+    List<ChatMessage> findAllByFirstUser(UserPostgres firstUser);
+    List<ChatMessage> findAllBySecondUser(UserPostgres secondUser);
+
 }

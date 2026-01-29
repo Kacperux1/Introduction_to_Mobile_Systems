@@ -1,19 +1,17 @@
 package finlandia40.chat.dto;
 
-
-import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
-
 import java.time.LocalDateTime;
 
 @Builder
 public record MessageDto(
+        Long senderId,
         @NotNull
         Long receiverId,
-        @Min(1)
+        @NotBlank
         String content,
-        @NotNull
         LocalDateTime sent
 ) {
 }

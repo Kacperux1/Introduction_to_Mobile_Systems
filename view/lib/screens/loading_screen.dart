@@ -5,6 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:math' as math;
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../l10n_helper.dart';
 
 class LoadingScreen extends StatefulWidget {
   final String username;
@@ -88,8 +89,17 @@ class _LoadingScreenState extends State<LoadingScreen>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isHighContrast = theme.scaffoldBackgroundColor == const Color(0xFF301934);
+    final isDefaultMode = theme.scaffoldBackgroundColor == const Color(0xFF00008B);
+    final isDarkMode = theme.scaffoldBackgroundColor == Colors.black;
+    final s = S.of(context);
+
+    Color loadingTextColor = (isHighContrast) ? Colors.yellow : Colors.white;
+    if (!isHighContrast && !isDefaultMode && !isDarkMode) loadingTextColor = Colors.black;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF00008B),
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(32.0),
@@ -97,11 +107,26 @@ class _LoadingScreenState extends State<LoadingScreen>
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              FadeTransition(
-                opacity: Tween<double>(begin: 0.3, end: 1.0).animate(_logoBlinkController),
-                child: SvgPicture.asset(
-                  'assets/logo/Logo.svg',
-                  height: 80,
+              Semantics(
+                label: 'BookTrade Logo',
+                child: FadeTransition(
+                  opacity: Tween<double>(begin: 0.3, end: 1.0).animate(_logoBlinkController),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 30),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(50),
+                    ),
+                    child: const Text(
+                      'BookTrade',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
                 ),
               ),
               AnimatedBuilder(
@@ -115,13 +140,15 @@ class _LoadingScreenState extends State<LoadingScreen>
                       angle: angle,
                       radius: radius,
                       assetPath: 'assets/icons/Dollar.svg',
-                      scaleFactor: 0.4);
+                      scaleFactor: 0.4,
+                      theme: theme);
 
                   final icon2 = _buildAnimatedIcon(
                       angle: angle + math.pi,
                       radius: radius,
                       assetPath: 'assets/icons/Book.svg',
-                      scaleFactor: 0.4);
+                      scaleFactor: 0.4,
+                      theme: theme);
 
                   return SizedBox(
                     height: 200,
@@ -138,10 +165,13 @@ class _LoadingScreenState extends State<LoadingScreen>
                 builder: (context, child) {
                   final dotCount = (_dotsController.value * 4).floor();
                   final dots = '.' * (dotCount % 4);
-                  return Text(
-                    'Loading$dots',
-                    style: const TextStyle(
-                        color: Colors.white, fontSize: 24, letterSpacing: 2.0),
+                  return Semantics(
+                    label: '${s.get('loading')} in progress',
+                    child: Text(
+                      '${s.get('loading')}$dots',
+                      style: TextStyle(
+                          color: loadingTextColor, fontSize: 24, letterSpacing: 2.0),
+                    ),
                   );
                 },
               ),
@@ -156,7 +186,8 @@ class _LoadingScreenState extends State<LoadingScreen>
       {required double angle,
       required double radius,
       required String assetPath,
-      required double scaleFactor}) {
+      required double scaleFactor,
+      required ThemeData theme}) {
     final sinAngle = math.sin(angle);
     final scale = 1.0 + sinAngle * scaleFactor;
     return Transform.translate(
@@ -166,19 +197,22 @@ class _LoadingScreenState extends State<LoadingScreen>
       ),
       child: Transform.scale(
         scale: scale,
-        child: _buildCircleIcon(assetPath),
+        child: _buildCircleIcon(assetPath, theme),
       ),
     );
   }
 
-  Widget _buildCircleIcon(String assetPath) {
+  Widget _buildCircleIcon(String assetPath, ThemeData theme) {
+    final isHighContrast = theme.scaffoldBackgroundColor == const Color(0xFF301934);
+    
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: isHighContrast ? Colors.black : Colors.white,
         shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
+        border: isHighContrast ? Border.all(color: Colors.yellow, width: 2) : null,
+        boxShadow: isHighContrast ? null : [
+          const BoxShadow(
             color: Colors.black26,
             blurRadius: 10,
             offset: Offset(0, 4),
@@ -189,6 +223,7 @@ class _LoadingScreenState extends State<LoadingScreen>
         assetPath,
         width: 40,
         height: 40,
+        colorFilter: ColorFilter.mode(isHighContrast ? Colors.yellow : Colors.black, BlendMode.srcIn),
       ),
     );
   }

@@ -5,12 +5,22 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/book.dart';
+import '../l10n_helper.dart';
+import '../main.dart';
+import '../service/ai_chat_service.dart';
+import 'chat_screen.dart';
 
 class BookDetailsScreen extends StatefulWidget {
   final int bookId;
   final bool isLoggedIn;
+  final String? translatedTitle;
 
-  const BookDetailsScreen({super.key, required this.bookId, required this.isLoggedIn});
+  const BookDetailsScreen({
+    super.key, 
+    required this.bookId, 
+    required this.isLoggedIn,
+    this.translatedTitle,
+  });
 
   @override
   State<BookDetailsScreen> createState() => _BookDetailsScreenState();
@@ -18,10 +28,13 @@ class BookDetailsScreen extends StatefulWidget {
 
 class _BookDetailsScreenState extends State<BookDetailsScreen> {
   late Future<Book> _bookFuture;
+  String? _currentTranslatedTitle;
+  final AiChatService _aiService = AiChatService();
 
   @override
   void initState() {
     super.initState();
+    _currentTranslatedTitle = widget.translatedTitle;
     _bookFuture = _fetchBookDetails();
   }
 
@@ -36,9 +49,26 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     );
 
     if (response.statusCode == 200) {
-      return Book.fromJson(jsonDecode(response.body));
+      final book = Book.fromJson(jsonDecode(response.body));
+      if (_currentTranslatedTitle == null) {
+        _translateTitle(book.title);
+      }
+      return book;
     } else {
-      throw Exception('Failed to load book details');
+      throw Exception(S.of(context).get('failed_load_details'));
+    }
+  }
+
+  Future<void> _translateTitle(String title) async {
+    final s = S.of(context);
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token');
+    
+    final translated = await _aiService.translateTitle(title, s.locale.languageCode, token);
+    if (mounted && translated != title) {
+      setState(() {
+        _currentTranslatedTitle = translated;
+      });
     }
   }
 
@@ -48,12 +78,12 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     });
   }
 
-  Future<bool> _submitReview(int bookId, int rating, String comment) async {
+  Future<bool> _submitReview(int bookId, int rating, String comment, S s) async {
     if (!widget.isLoggedIn) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('You must be logged in to submit a review.')),
+          SnackBar(
+              content: Text(s.get('login_required_review'))),
         );
       }
       return false;
@@ -82,40 +112,44 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
       if (response.statusCode == 201) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Review submitted successfully!')),
+          SnackBar(content: Text(s.get('review_submitted'))),
         );
         return true;
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content: Text(
-                  'Failed to submit review. Status: ${response.statusCode}, Body: ${response.body}')),
+                  s.get('review_failed', args: {'error': response.body}))),
         );
         return false;
       }
     } on TimeoutException {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('The request timed out. Please try again.')),
+          SnackBar(
+              content: Text(s.get('timeout_error'))),
         );
       }
       return false;
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('An error occurred: $e')),
+          SnackBar(content: Text(s.get('error_occurred', args: {'error': e.toString()}))),
         );
       }
       return false;
     }
   }
 
-  Future<void> _showReviewDialog(Book book) async {
+  Future<void> _showReviewDialog(Book book, ThemeData theme, S s) async {
     final formKey = GlobalKey<FormState>();
     final commentController = TextEditingController();
     int rating = 3;
     bool isSubmitting = false;
+    final isHighContrast = theme.scaffoldBackgroundColor == const Color(0xFF301934);
+    final isDarkMode = theme.scaffoldBackgroundColor == Colors.black;
+    final isDefaultMode = theme.scaffoldBackgroundColor == const Color(0xFF00008B);
+    Color dialogTextColor = (isDarkMode || isDefaultMode) ? Colors.white : (isHighContrast ? Colors.yellow : Colors.black);
 
     final reviewSubmitted = await showDialog<bool>(
       context: context,
@@ -124,13 +158,14 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: Text('Review "${book.title}"'),
+              backgroundColor: isHighContrast ? Colors.black : (isDarkMode || isDefaultMode ? const Color(0xFF1A1A1A) : theme.dialogBackgroundColor),
+              title: Text(s.get('review_dialog_title', args: {'title': _currentTranslatedTitle ?? book.title}), style: TextStyle(color: dialogTextColor)),
               content: Form(
                 key: formKey,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('Your Rating:'),
+                    Text(s.get('your_rating'), style: TextStyle(color: dialogTextColor)),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(5, (index) {
@@ -151,11 +186,18 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                     ),
                     TextFormField(
                       controller: commentController,
-                      decoration: const InputDecoration(labelText: 'Comment'),
+                      style: TextStyle(color: dialogTextColor),
+                      decoration: InputDecoration(
+                        labelText: s.get('comment'),
+                        labelStyle: TextStyle(color: dialogTextColor.withOpacity(0.7)),
+                        enabledBorder: isHighContrast || isDarkMode || isDefaultMode 
+                          ? UnderlineInputBorder(borderSide: BorderSide(color: dialogTextColor.withOpacity(0.5))) 
+                          : null,
+                      ),
                       maxLines: 3,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter a comment';
+                          return s.get('enter_comment_error');
                         }
                         return null;
                       },
@@ -168,7 +210,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                   onPressed: isSubmitting
                       ? null
                       : () => Navigator.of(dialogContext).pop(false),
-                  child: const Text('Cancel'),
+                  child: Text(s.get('cancel'), style: TextStyle(color: dialogTextColor)),
                 ),
                 TextButton(
                   onPressed: isSubmitting
@@ -179,7 +221,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                               isSubmitting = true;
                             });
                             final success = await _submitReview(
-                                book.id, rating, commentController.text);
+                                book.id, rating, commentController.text, s);
                             if (mounted) {
                               Navigator.of(dialogContext).pop(success);
                             }
@@ -191,7 +233,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Submit'),
+                      : Text(s.get('submit'), style: TextStyle(color: dialogTextColor)),
                 ),
               ],
             );
@@ -205,14 +247,83 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     }
   }
 
+  Future<void> _startChat(Book book, S s) async {
+    if (!widget.isLoggedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(s.get('login_required_chat'))),
+      );
+      return;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token');
+
+    if (token == null) return;
+
+    // Fetch seller info and current user info to get IDs
+    try {
+      final meResponse = await http.get(
+        Uri.parse('http://localhost:8080/api/me'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      
+      if (meResponse.statusCode == 200) {
+        final meData = jsonDecode(meResponse.body);
+        final currentUserId = meData['id'];
+
+        // We need seller's ID. Assuming we might need to fetch it or it's in the book object.
+        // For now, let's assume we need to fetch seller by login or it's already there if we modify backend.
+        // Let's assume we have sellerId in Book model now.
+        
+        // If sellerId is not in book, we might need another endpoint.
+        // Let's assume the backend provides it or we add it.
+        
+        // For this implementation, I'll search if I can get sellerId.
+        // Since I don't have sellerId in Book model yet, I'll assume we need to fetch it.
+        
+        final sellerResponse = await http.get(
+          Uri.parse('http://localhost:8080/api/users/${book.sellerLogin}'),
+          headers: {'Authorization': 'Bearer $token'},
+        );
+
+        if (sellerResponse.statusCode == 200) {
+          final sellerData = jsonDecode(sellerResponse.body);
+          final sellerId = sellerData['id'];
+
+          if (mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ChatScreen(
+                  receiverId: sellerId,
+                  receiverName: book.sellerLogin!,
+                  authToken: token,
+                  currentUserId: currentUserId,
+                ),
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error starting chat: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final s = S.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFF00008B),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Book Details', style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.red,
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text(s.get('book_details'), style: TextStyle(color: theme.appBarTheme.foregroundColor)),
+        backgroundColor: theme.appBarTheme.backgroundColor,
+        iconTheme: theme.appBarTheme.iconTheme ?? IconThemeData(color: theme.appBarTheme.foregroundColor),
       ),
       body: FutureBuilder<Book>(
         future: _bookFuture,
@@ -221,20 +332,35 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             return Center(
-                child: Text('Error: ${snapshot.error}',
+                child: Text(s.get('error_occurred', args: {'error': snapshot.error.toString()}),
                     style: const TextStyle(color: Colors.red)));
           } else if (snapshot.hasData) {
             final book = snapshot.data!;
-            return _buildBookDetails(context, book);
+            return _buildBookDetails(context, book, theme, s);
           } else {
-            return const Center(child: Text('Book not found.'));
+            return Center(child: Text(s.get('book_not_found')));
           }
         },
       ),
     );
   }
 
-  Widget _buildBookDetails(BuildContext context, Book book) {
+  Widget _buildBookDetails(BuildContext context, Book book, ThemeData theme, S s) {
+    final isHighContrast = theme.scaffoldBackgroundColor == const Color(0xFF301934);
+    final isDarkMode = theme.scaffoldBackgroundColor == Colors.black;
+    final isDefaultMode = theme.scaffoldBackgroundColor == const Color(0xFF00008B);
+    final themeSettings = ThemeSettings.of(context);
+
+    Color cardTextColor = (isDarkMode || isDefaultMode) ? Colors.white : (isHighContrast ? Colors.yellow : Colors.black);
+    final displayTitle = _currentTranslatedTitle ?? book.title;
+
+    final String bookDescription = s.get('book_semantics', args: {
+        'title': displayTitle,
+        'author': book.author,
+        'condition': s.translateCondition(book.condition),
+        'price': book.price.toStringAsFixed(2),
+    });
+
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -242,91 +368,109 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Book Image
-            ClipRRect(
-              borderRadius: BorderRadius.circular(20.0),
-              child: CachedNetworkImage(
-                imageUrl: book.imageUrl,
-                fit: BoxFit.cover,
-                placeholder: (context, url) =>
-                    const Center(child: CircularProgressIndicator()),
-                errorWidget: (context, url, error) =>
-                    const Icon(Icons.error, color: Colors.red, size: 100),
+            Semantics(
+              label: s.get('book_cover_label'),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20.0),
+                child: CachedNetworkImage(
+                  imageUrl: book.imageUrl,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) =>
+                      const Center(child: CircularProgressIndicator()),
+                  errorWidget: (context, url, error) =>
+                      const Icon(Icons.error, color: Colors.red, size: 100),
+                ),
               ),
             ),
             const SizedBox(height: 24.0),
 
             //Szczegóły
-            Card(
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20.0)),
-              color: Colors.grey[300],
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Title: ${book.title}',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 22)),
-                    const SizedBox(height: 8.0),
-                    Text('Author: ${book.author}',
-                        style: const TextStyle(fontSize: 18)),
-                    const SizedBox(height: 12.0),
-                    Text('Condition: ${book.condition}',
-                        style: const TextStyle(
-                            fontSize: 16, fontStyle: FontStyle.italic)),
-                    const SizedBox(height: 12.0),
-                    Text('Price: ${book.price.toStringAsFixed(2)}zł',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 24,
-                            color: Colors.green[800])),
-                  ],
+            Semantics(
+              container: true,
+              label: bookDescription,
+              child: Card(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20.0),
+                    side: isHighContrast ? const BorderSide(color: Colors.yellow, width: 2) : BorderSide.none),
+                color: isHighContrast ? Colors.black : (isDefaultMode ? Colors.white.withOpacity(0.1) : (isDarkMode ? Colors.white.withOpacity(0.05) : theme.cardColor)),
+                child: InkWell(
+                  onTap: () => themeSettings?.speak(bookDescription),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('${s.get('title')}: $displayTitle',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 22, color: cardTextColor)),
+                        const SizedBox(height: 8.0),
+                        Text('${s.get('author')}: ${book.author}',
+                            style: TextStyle(fontSize: 18, color: cardTextColor)),
+                        const SizedBox(height: 12.0),
+                        Text('${s.get('condition')}: ${s.translateCondition(book.condition)}',
+                            style: TextStyle(
+                                fontSize: 16, fontStyle: FontStyle.italic, color: cardTextColor)),
+                        const SizedBox(height: 12.0),
+                        Text('${s.get('price')}: ${book.price.toStringAsFixed(2)}zł',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 24,
+                                color: isHighContrast ? Colors.yellow : (isDarkMode ? Colors.greenAccent : Colors.green[800]))),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
             const SizedBox(height: 24.0),
 
             // Sprzedawca
-            if (book.sellerLogin != null) _buildSellerSection(context, book),
+            if (book.sellerLogin != null) _buildSellerSection(context, book, theme, s),
 
             // Recenzje
-            _buildReviewsSection(book),
+            _buildReviewsSection(book, theme, s),
 
             const SizedBox(height: 16.0),
 
             if (widget.isLoggedIn)
-              ElevatedButton(
-                onPressed: () => _showReviewDialog(book),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  padding: const EdgeInsets.symmetric(vertical: 12.0),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30.0)),
+              Semantics(
+                button: true,
+                child: ElevatedButton(
+                  onPressed: () => _showReviewDialog(book, theme, s),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isHighContrast ? Colors.black : Colors.blue,
+                    padding: const EdgeInsets.symmetric(vertical: 12.0),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30.0),
+                        side: isHighContrast ? const BorderSide(color: Colors.yellow, width: 2) : BorderSide.none),
+                  ),
+                  child: Text(s.get('add_review'),
+                      style: TextStyle(fontSize: 18, color: isHighContrast ? Colors.yellow : Colors.white)),
                 ),
-                child: const Text('Add Your Review',
-                    style: TextStyle(fontSize: 18, color: Colors.white)),
               ),
 
             const SizedBox(height: 24.0),
 
             // Buy Now
-            ElevatedButton(
-              onPressed: () {
-                // TODO: Implementacja logiki
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text('Purchase functionality not implemented yet.')),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30.0)),
+            Semantics(
+              button: true,
+              child: ElevatedButton(
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content: Text(s.get('purchase_not_implemented'))),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isHighContrast ? Colors.black : Colors.green,
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30.0),
+                      side: isHighContrast ? const BorderSide(color: Colors.yellow, width: 2) : BorderSide.none),
+                ),
+                child: Text(s.get('buy_now'),
+                    style: TextStyle(fontSize: 20, color: isHighContrast ? Colors.yellow : Colors.white)),
               ),
-              child: const Text('Buy Now',
-                  style: TextStyle(fontSize: 20, color: Colors.white)),
             ),
           ],
         ),
@@ -334,42 +478,47 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     );
   }
 
-  Widget _buildSellerSection(BuildContext context, Book book) {
+  Widget _buildSellerSection(BuildContext context, Book book, ThemeData theme, S s) {
+    final isHighContrast = theme.scaffoldBackgroundColor == const Color(0xFF301934);
+    final isDefaultMode = theme.scaffoldBackgroundColor == const Color(0xFF00008B);
+    final isDarkMode = theme.scaffoldBackgroundColor == Colors.black;
+
+    Color sectionHeaderColor = (isHighContrast) ? Colors.yellow : Colors.white;
+    if (!isHighContrast && !isDefaultMode && !isDarkMode) sectionHeaderColor = Colors.black;
+    Color cardTextColor = (isDarkMode || isDefaultMode) ? Colors.white : (isHighContrast ? Colors.yellow : Colors.black);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Sold by',
+        Text(
+          s.get('sold_by'),
           style: TextStyle(
-              color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+              color: sectionHeaderColor, fontSize: 22, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16.0),
         Card(
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
-          color: Colors.grey[300],
+              RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15.0),
+                side: isHighContrast ? const BorderSide(color: Colors.yellow, width: 2) : BorderSide.none),
+          color: isHighContrast ? Colors.black : (isDefaultMode ? Colors.white.withOpacity(0.1) : (isDarkMode ? Colors.white.withOpacity(0.05) : theme.cardColor)),
           child: ListTile(
-            leading: const Icon(Icons.person, size: 40),
+            leading: Icon(Icons.person, size: 40, color: isHighContrast ? Colors.yellow : cardTextColor),
             title: Text(book.sellerLogin!,
                 style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            subtitle: Text(book.sellerEmail ?? 'Email not available'),
+                    TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: cardTextColor)),
+            subtitle: Text(book.sellerEmail ?? s.get('email_not_available'), 
+              style: TextStyle(color: cardTextColor.withOpacity(0.7))),
             trailing: ElevatedButton(
-              onPressed: () {
-                // TODO: Implementacja chatu
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text(
-                          'Chat functionality will be implemented in the future.')),
-                );
-              },
+              onPressed: () => _startChat(book, s),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
+                backgroundColor: isHighContrast ? Colors.black : Colors.blue,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20.0)),
+                    borderRadius: BorderRadius.circular(20.0),
+                    side: isHighContrast ? const BorderSide(color: Colors.yellow, width: 2) : BorderSide.none),
               ),
               child:
-                  const Text('Contact', style: TextStyle(color: Colors.white)),
+                  Text(s.get('contact'), style: TextStyle(color: isHighContrast ? Colors.yellow : Colors.white)),
             ),
           ),
         ),
@@ -378,13 +527,21 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     );
   }
 
-  Widget _buildReviewsSection(Book book) {
+  Widget _buildReviewsSection(Book book, ThemeData theme, S s) {
+    final isHighContrast = theme.scaffoldBackgroundColor == const Color(0xFF301934);
+    final isDefaultMode = theme.scaffoldBackgroundColor == const Color(0xFF00008B);
+    final isDarkMode = theme.scaffoldBackgroundColor == Colors.black;
+
+    Color sectionHeaderColor = (isHighContrast) ? Colors.yellow : Colors.white;
+    if (!isHighContrast && !isDefaultMode && !isDarkMode) sectionHeaderColor = Colors.black;
+    Color cardTextColor = (isDarkMode || isDefaultMode) ? Colors.white : (isHighContrast ? Colors.yellow : Colors.black);
+
     if (book.reviews.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 16.0),
-          child: Text('No reviews yet.',
-              style: TextStyle(color: Colors.white, fontSize: 16)),
+          padding: const EdgeInsets.symmetric(vertical: 16.0),
+          child: Text(s.get('no_reviews_yet'),
+              style: TextStyle(color: sectionHeaderColor, fontSize: 16)),
         ),
       );
     }
@@ -392,10 +549,10 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Reviews',
+        Text(
+          s.get('reviews'),
           style: TextStyle(
-              color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+              color: sectionHeaderColor, fontSize: 22, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16.0),
         ListView.builder(
@@ -407,8 +564,9 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             return Card(
               margin: const EdgeInsets.only(bottom: 12.0),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15.0)),
-              color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(15.0),
+                  side: isHighContrast ? const BorderSide(color: Colors.yellow, width: 2) : BorderSide.none),
+              color: isHighContrast ? Colors.black : (isDefaultMode ? Colors.white.withOpacity(0.1) : (isDarkMode ? Colors.white.withOpacity(0.05) : theme.cardColor)),
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
                 child: Column(
@@ -418,13 +576,13 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(review.reviewerName,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 16)),
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16, color: cardTextColor)),
                         _buildRatingStars(review.rating),
                       ],
                     ),
                     const SizedBox(height: 8.0),
-                    Text(review.comment, style: const TextStyle(fontSize: 14)),
+                    Text(review.comment, style: TextStyle(fontSize: 14, color: cardTextColor)),
                   ],
                 ),
               ),

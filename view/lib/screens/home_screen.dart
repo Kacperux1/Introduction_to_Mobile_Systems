@@ -10,6 +10,11 @@ import 'faq_screen.dart';
 import 'audio_settings_screen.dart';
 import 'language_screen.dart';
 import 'preferences_screen.dart';
+import 'ai_recommendation_screen.dart';
+import 'chat_list_screen.dart';
+import '../l10n_helper.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class HomeScreen extends StatefulWidget {
   final bool isLoggedIn;
@@ -56,34 +61,93 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _navigateToChats() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token');
+    if (token != null && mounted) {
+      try {
+        final response = await http.get(
+          Uri.parse('http://localhost:8080/api/me'),
+          headers: {'Authorization': 'Bearer $token'},
+        );
+        if (response.statusCode == 200) {
+          final userData = jsonDecode(response.body);
+          if (mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ChatListScreen(
+                  authToken: token,
+                  currentUserId: userData['id'],
+                ),
+              ),
+            );
+          }
+        }
+      } catch (e) {
+         print("Error navigating to chats: $e");
+      }
+    }
+  }
+
+  void _navigateToAiRecommendations() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token');
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => AiRecommendationScreen(authToken: token)),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDefaultMode = theme.scaffoldBackgroundColor == const Color(0xFF00008B);
+    final s = S.of(context);
+
     return Scaffold(
-      backgroundColor: const Color(0xFF00008B),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        backgroundColor: Colors.red,
+        backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
         titleSpacing: 0,
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _buildAppBarButton(
-              icon: SvgPicture.asset(
-                'assets/icons/Book.svg',
-                width: 30,
-                height: 30,
-                colorFilter: const ColorFilter.mode(Colors.black, BlendMode.srcIn),
+            Semantics(
+              label: s.get('your_account'),
+              onTapHint: s.get('tap_to_open_menu'),
+              button: true,
+              child: _buildAppBarButton(
+                icon: SvgPicture.asset(
+                  'assets/icons/Book.svg',
+                  width: 30,
+                  height: 30,
+                  colorFilter: ColorFilter.mode(theme.appBarTheme.foregroundColor ?? Colors.black, BlendMode.srcIn),
+                ),
+                onPressed: _toggleLeftMenu,
               ),
-              onPressed: _toggleLeftMenu,
             ),
-            const Text(
-              'BookTrade',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22),
+            Text(
+              s.get('app_title'),
+              style: TextStyle(
+                color: theme.appBarTheme.foregroundColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 22,
+              ),
             ),
-            _buildAppBarButton(
-              icon: const Icon(Icons.menu, color: Colors.black, size: 30),
-              onPressed: _toggleRightMenu,
+            Semantics(
+              label: s.get('preferences'),
+              onTapHint: s.get('tap_to_open_menu'),
+              button: true,
+              child: _buildAppBarButton(
+                icon: Icon(Icons.menu, color: theme.appBarTheme.foregroundColor ?? Colors.black, size: 30),
+                onPressed: _toggleRightMenu,
+              ),
             ),
           ],
         ),
@@ -98,7 +162,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 _buildMenuOption(
                   context,
-                  text: 'Buy books for your studies',
+                  text: s.get('buy_books'),
                   assetPath: 'assets/icons/Book.svg',
                   isReversed: false,
                   onTap: () {
@@ -107,10 +171,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       MaterialPageRoute(builder: (context) => BuyBooksScreen(isLoggedIn: widget.isLoggedIn)),
                     );
                   },
+                  hint: s.get('tap_to_select'),
                 ),
                 _buildMenuOption(
                   context,
-                  text: 'Sell books you no longer use',
+                  text: s.get('sell_books'),
                   assetPath: 'assets/icons/Dollar.svg',
                   isReversed: true,
                   onTap: () {
@@ -119,10 +184,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       MaterialPageRoute(builder: (context) => const SellBooksScreen()),
                     );
                   },
+                  hint: s.get('tap_to_select'),
                 ),
                 _buildMenuOption(
                   context,
-                  text: 'give reviews of books',
+                  text: s.get('reviews_lowercase'),
                   assetPath: 'assets/icons/Review.svg',
                   isReversed: true,
                   onTap: () {
@@ -131,6 +197,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       MaterialPageRoute(builder: (context) => const ReviewBooksScreen()),
                     );
                   },
+                  hint: s.get('tap_to_select'),
+                ),
+                _buildMenuOption(
+                  context,
+                  text: s.get('ai_recommendations'),
+                  assetPath: 'assets/icons/Review.svg',
+                  isReversed: false,
+                  onTap: _navigateToAiRecommendations,
+                  hint: s.get('tap_to_select'),
                 ),
               ],
             ),
@@ -154,15 +229,24 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                 _buildDrawerItem('Your Account', _navigateToYourAccount),
+                 _buildDrawerItem(s.get('your_account'), _navigateToYourAccount, s.get('tap_to_select')),
                  const SizedBox(height: 20),
-                 _buildDrawerItem('FAQ', () => Navigator.push(context, MaterialPageRoute(builder: (context) => const FaqScreen()))),
+                 _buildDrawerItem(s.get('chats'), _navigateToChats, s.get('tap_to_select')),
+                 const SizedBox(height: 20),
+                 _buildDrawerItem(s.get('ai_recommendations'), _navigateToAiRecommendations, s.get('tap_to_select')),
+                 const SizedBox(height: 20),
+                 _buildDrawerItem(s.get('faq'), () => Navigator.push(context, MaterialPageRoute(builder: (context) => const FaqScreen())), s.get('tap_to_select')),
                  const Spacer(),
-                 ListTile(
-                    leading: const Icon(Icons.logout, color: Colors.white),
-                    title: const Text('Log out', style: TextStyle(color: Colors.white, fontSize: 20)),
-                    onTap: widget.onLogout,
-                ),
+                 Semantics(
+                   button: true,
+                   label: s.get('logout'),
+                   onTapHint: s.get('tap_to_logout'),
+                   child: ListTile(
+                      leading: Icon(Icons.logout, color: isDefaultMode ? Colors.white : colorScheme.onSurface),
+                      title: Text(s.get('logout'), style: TextStyle(color: isDefaultMode ? Colors.white : colorScheme.onSurface, fontSize: 20)),
+                      onTap: widget.onLogout,
+                  ),
+                 ),
               ],
             ),
           ),
@@ -174,11 +258,11 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildDrawerItem('Audio settings', () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AudioSettingsScreen()))),
+                _buildDrawerItem(s.get('audio_settings'), () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AudioSettingsScreen())), s.get('tap_to_select')),
                 const SizedBox(height: 20),
-                _buildDrawerItem('Language', () => Navigator.push(context, MaterialPageRoute(builder: (context) => const LanguageScreen()))),
+                _buildDrawerItem(s.get('language'), () => Navigator.push(context, MaterialPageRoute(builder: (context) => const LanguageScreen())), s.get('tap_to_select')),
                 const SizedBox(height: 20),
-                _buildDrawerItem('Preferences', () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PreferencesScreen()))),
+                _buildDrawerItem(s.get('preferences'), () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PreferencesScreen())), s.get('tap_to_select')),
               ],
             ),
           ),
@@ -194,6 +278,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isLeft = alignment == Alignment.centerLeft;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDefaultMode = theme.scaffoldBackgroundColor == const Color(0xFF00008B);
 
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 300),
@@ -202,9 +289,10 @@ class _HomeScreenState extends State<HomeScreen> {
       bottom: 0,
       left: isLeft ? (isOpen ? 0 : -screenWidth) : null,
       right: !isLeft ? (isOpen ? 0 : -screenWidth) : null,
-      width: screenWidth * 1.0,
+      width: screenWidth * 0.8,
       child: Material(
-        color: Colors.black.withOpacity(0.85),
+        color: isDefaultMode ? Colors.black.withOpacity(0.95) : colorScheme.surface.withOpacity(0.95),
+        elevation: 8,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 40.0),
           child: child,
@@ -214,66 +302,107 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildAppBarButton({required Widget icon, required VoidCallback onPressed}) {
+    final theme = Theme.of(context);
     return InkWell(
       onTap: onPressed,
       child: Container(
         margin: const EdgeInsets.all(6.0),
         padding: const EdgeInsets.all(8.0),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: theme.appBarTheme.foregroundColor?.withOpacity(0.1) ?? Colors.white.withOpacity(0.2),
           borderRadius: BorderRadius.circular(8.0),
+          border: Border.all(color: theme.appBarTheme.foregroundColor ?? Colors.white),
         ),
         child: icon,
       ),
     );
   }
 
-  Widget _buildDrawerItem(String title, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      child: Text(
-        title,
-        style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+  Widget _buildDrawerItem(String title, VoidCallback onTap, String hint) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDefaultMode = theme.scaffoldBackgroundColor == const Color(0xFF00008B);
+
+    return Semantics(
+      button: true,
+      label: title,
+      onTapHint: hint,
+      child: InkWell(
+        onTap: onTap,
+        child: Text(
+          title,
+          style: TextStyle(color: isDefaultMode ? Colors.white : colorScheme.onSurface, fontSize: 24, fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }
 
   Widget _buildMenuOption(
     BuildContext context,
-    {required String text, required String assetPath, required bool isReversed, required VoidCallback onTap}
+    {required String text, required String assetPath, required bool isReversed, required VoidCallback onTap, required String hint}
   ) {
+    final theme = Theme.of(context);
+    final isDefaultMode = theme.scaffoldBackgroundColor == const Color(0xFF00008B);
+    final isHighContrast = theme.scaffoldBackgroundColor == const Color(0xFF301934);
+    final isDarkMode = theme.scaffoldBackgroundColor == Colors.black;
+    
+    Color textColor;
+    if (isHighContrast) {
+      textColor = Colors.yellow;
+    } else if (isDarkMode) {
+      textColor = Colors.white;
+    } else {
+      textColor = Colors.black;
+    }
+
     final textWidget = Text(
       text,
-      style: const TextStyle(color: Colors.black, fontSize: 18),
+      style: TextStyle(color: textColor, fontSize: 18),
       textAlign: isReversed ? TextAlign.right : TextAlign.left,
     );
 
     final iconWidget = Container(
       padding: const EdgeInsets.all(20),
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: isHighContrast ? Colors.black : Colors.white,
         shape: BoxShape.circle,
+        border: Border.all(color: isHighContrast ? Colors.yellow : Colors.black, width: 0.5),
       ),
       child: SvgPicture.asset(
         assetPath,
         width: 40,
         height: 40,
+        colorFilter: ColorFilter.mode(isHighContrast ? Colors.yellow : Colors.black, BlendMode.srcIn),
       ),
     );
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-        decoration: BoxDecoration(
-          color: Colors.grey[300],
-          borderRadius: BorderRadius.circular(30.0),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: isReversed
-              ? [Expanded(child: textWidget), const SizedBox(width: 16), iconWidget]
-              : [iconWidget, const SizedBox(width: 16), Expanded(child: textWidget)],
+    return Semantics(
+      button: true,
+      label: text,
+      onTapHint: hint,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+          decoration: BoxDecoration(
+            color: isDefaultMode ? const Color(0xFFE0E0E0) : theme.cardColor,
+            borderRadius: BorderRadius.circular(30.0),
+            border: isHighContrast ? Border.all(color: Colors.yellow, width: 2) : null,
+            boxShadow: [
+              if (!isHighContrast)
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: isReversed
+                ? [Expanded(child: textWidget), const SizedBox(width: 16), iconWidget]
+                : [iconWidget, const SizedBox(width: 16), Expanded(child: textWidget)],
+          ),
         ),
       ),
     );
