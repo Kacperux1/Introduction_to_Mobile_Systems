@@ -41,6 +41,11 @@ public class BookController {
         return convertToResponse(newBook);
     }
 
+    @PatchMapping("/books/{id}/image")
+    public void updateBookImage(@PathVariable Long id, @RequestBody UpdateImageRequest request) {
+        bookService.updateBookImage(id, request.imageUrl());
+    }
+
     private BookResponse convertToResponse(Book book) {
         List<ReviewResponse> reviewResponses = book.getReviews().stream()
                 .map(this::convertReviewToResponse)
@@ -67,6 +72,7 @@ public class BookController {
 
     // DTOs
     public record CreateBookRequest(String title, String author, String condition, Double price, String imageUrl) {}
+    public record UpdateImageRequest(String imageUrl) {}
     public record ReviewResponse(Long id, int rating, String comment, String reviewerName) {}
     public record BookResponse(Long id, String title, String author, String condition, Double price, String imageUrl, String sellerLogin, String sellerEmail, List<ReviewResponse> reviews) {}
 }

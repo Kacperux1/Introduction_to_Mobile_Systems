@@ -14,12 +14,14 @@ class BookDetailsScreen extends StatefulWidget {
   final int bookId;
   final bool isLoggedIn;
   final String? translatedTitle;
+  final String? dynamicImageUrl;
 
   const BookDetailsScreen({
     super.key, 
     required this.bookId, 
     required this.isLoggedIn,
     this.translatedTitle,
+    this.dynamicImageUrl,
   });
 
   @override
@@ -29,12 +31,14 @@ class BookDetailsScreen extends StatefulWidget {
 class _BookDetailsScreenState extends State<BookDetailsScreen> {
   late Future<Book> _bookFuture;
   String? _currentTranslatedTitle;
+  String? _currentImageUrl;
   final AiChatService _aiService = AiChatService();
 
   @override
   void initState() {
     super.initState();
     _currentTranslatedTitle = widget.translatedTitle;
+    _currentImageUrl = widget.dynamicImageUrl;
     _bookFuture = _fetchBookDetails();
   }
 
@@ -353,6 +357,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
     Color cardTextColor = (isDarkMode || isDefaultMode) ? Colors.white : (isHighContrast ? Colors.yellow : Colors.black);
     final displayTitle = _currentTranslatedTitle ?? book.title;
+    final displayImageUrl = _currentImageUrl ?? book.imageUrl;
 
     final String bookDescription = s.get('book_semantics', args: {
         'title': displayTitle,
@@ -373,12 +378,15 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(20.0),
                 child: CachedNetworkImage(
-                  imageUrl: book.imageUrl,
-                  fit: BoxFit.cover,
+                  imageUrl: displayImageUrl,
+                  fit: BoxFit.contain,
                   placeholder: (context, url) =>
                       const Center(child: CircularProgressIndicator()),
-                  errorWidget: (context, url, error) =>
-                      const Icon(Icons.error, color: Colors.red, size: 100),
+                  errorWidget: (context, url, error) => Container(
+                    height: 200,
+                    color: Colors.grey[200],
+                    child: const Icon(Icons.book, size: 100, color: Colors.grey),
+                  ),
                 ),
               ),
             ),

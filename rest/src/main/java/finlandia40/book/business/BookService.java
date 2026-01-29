@@ -6,6 +6,7 @@ import finlandia40.book.web.BookController;
 import finlandia40.user.business.UserService;
 import finlandia40.user.model.UserPostgres;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -43,5 +44,14 @@ public class BookService {
                 seller
         );
         return bookRepository.save(book);
+    }
+
+    @Transactional
+    public void updateBookImage(Long id, String imageUrl) {
+        Book book = getBookById(id);
+        if (book.getImageUrl() == null || book.getImageUrl().isEmpty()) {
+            book.setImageUrl(imageUrl);
+            bookRepository.save(book);
+        }
     }
 }

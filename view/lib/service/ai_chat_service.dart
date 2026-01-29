@@ -28,33 +28,30 @@ class AiChatService {
           'Authorization': 'Bearer $authToken',
         },
         body: jsonEncode(history.map((m) => m.toJson()).toList()),
-      );
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         return response.body;
       } else {
-        return 'Błąd serwera: ${response.statusCode}';
+        return 'ERROR_RESPONSE';
       }
     } catch (e) {
-      return 'Błąd połączenia: $e';
+      return 'CONNECTION_ERROR';
     }
   }
 
   Future<String> translateTitle(String title, String targetLanguage, String? authToken) async {
-    final cacheKey = '$title-$targetLanguage';
-    if (_translationCache.containsKey(cacheKey)) {
-      final cachedMap = _translationCache[cacheKey];
-      if (cachedMap != null && cachedMap.containsKey(targetLanguage)) {
-        return cachedMap[targetLanguage]!;
-      }
+    final cacheKey = title; // Simplify cache key to title
+    if (_translationCache.containsKey(cacheKey) && _translationCache[cacheKey]!.containsKey(targetLanguage)) {
+      return _translationCache[cacheKey]![targetLanguage]!;
     }
 
     try {
       String promptContent;
       if (targetLanguage == 'pl') {
-        promptContent = 'Translate the following book title to Polish. IMPORTANT: If the title is already in English, do NOT translate it—return it exactly as it is. Return ONLY the title text: "$title"';
+        promptContent = 'Translate this book title to Polish. If it is already in English or Polish, keep it as is. Return ONLY the title text, no quotes: "$title"';
       } else {
-        promptContent = 'Translate the following book title to English. Return ONLY the translated title text: "$title"';
+        promptContent = 'Translate this book title to English. Return ONLY the title text, no quotes: "$title"';
       }
 
       final prompt = [
@@ -66,7 +63,12 @@ class AiChatService {
 
       final response = await sendMessage(prompt, authToken);
       
-      // Basic cleanup if AI adds quotes or extra spaces
+      // Validation: If it is an error or it is suspiciously long (more than 150 chars or 2x original), ignore it.
+      if (response == 'ERROR_RESPONSE' || response == 'CONNECTION_ERROR' || response.length > 150 || response.length > title.length * 3) {
+        return title; 
+      }
+
+      // Basic cleanup
       final translated = response.replaceAll('"', '').trim();
       
       if (!_translationCache.containsKey(cacheKey)) {
@@ -76,7 +78,7 @@ class AiChatService {
 
       return translated;
     } catch (e) {
-      return title; // Fallback to original
+      return title;
     }
   }
 }
